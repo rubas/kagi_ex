@@ -7,40 +7,35 @@
 Build a reusable client when making more than one request:
 
 ```elixir
-client = Kagi.new!(session_token: my_session_token())
+client = Kagi.new!()
 
 {:ok, search} = Kagi.search(client, "elixir req", lens: :programming, limit: 5)
 {:ok, summary} = Kagi.summarize(client, "https://elixir-lang.org")
 {:ok, maps} = Kagi.maps(client, "coffee zurich", sort: :rating)
 ```
 
-For one-off calls, pass the same options directly:
+For one-off calls, use the application-configured client:
 
 ```elixir
-{:ok, search} = Kagi.search("elixir req", session_token: "...")
+{:ok, search} = Kagi.search("elixir req")
 ```
 
 ## Authentication
 
-Resolve the Kagi session token with one of:
-
-- `:session_token` option
-- `config :kagi_ex, :session_token, "..."`
+Configure the Kagi session token with `config :kagi_ex, :session_token, "..."`.
 
 Missing tokens return `{:error, %Kagi.Error{reason: :missing_session_token}}`.
 
 ## Transport
 
-Default transport is normal `Req`. `:transport`, `:req_options`, and `:cloaked_req_options` are configured via application config only - they are not accepted per call.
+Requests always use `CloakedReq`. Configure `:req_options` via application
+config when you need to override the default `Req` request options.
 
 ```elixir
 config :kagi_ex,
   session_token: System.fetch_env!("KAGI_SESSION_TOKEN"),
-  transport: :cloaked_req,
-  cloaked_req_options: [impersonate: :chrome_136]
+  req_options: [receive_timeout: 30_000]
 ```
-
-`cloaked_req` is an optional dependency. Add `{:cloaked_req, "~> 0.3"}` to your deps when selecting the `:cloaked_req` transport.
 
 ## Returned Types
 

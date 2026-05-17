@@ -73,7 +73,7 @@ defmodule KagiEx.MixProject do
     [
       {:req, "~> 0.5"},
       {:lazy_html, "~> 0.1"},
-      {:cloaked_req, "~> 0.3.2", optional: true},
+      {:cloaked_req, "~> 0.3.2"},
       {:credo, "~> 1.7.18", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.11", only: [:dev, :test], runtime: false},

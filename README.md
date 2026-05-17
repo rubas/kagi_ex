@@ -4,9 +4,8 @@
 
 Docs: <https://hexdocs.pm/kagi_ex>
 
-It uses `Req` by default and can route requests through
-[`cloaked_req`](https://hexdocs.pm/cloaked_req) when browser impersonation is
-needed.
+It builds `Req` requests and sends them through
+[`cloaked_req`](https://hexdocs.pm/cloaked_req).
 
 ## Installation
 
@@ -20,22 +19,30 @@ end
 
 ## Authentication
 
-Kagi requires a session token. `kagi_ex` resolves it in this order:
+Kagi requires a session token. Put it in application config:
 
-1. `:session_token` option
-2. `config :kagi_ex, :session_token, "..."`
+```elixir
+config :kagi_ex,
+  session_token: System.fetch_env!("KAGI_SESSION_TOKEN")
+```
 
 The library never stores session tokens.
 
 ## Usage
 
-Use the default `Req` transport:
+Configure the client once:
 
 ```elixir
-client = Kagi.new!(session_token: my_session_token())
+# config/runtime.exs
+config :kagi_ex,
+  session_token: System.fetch_env!("KAGI_SESSION_TOKEN")
+```
 
+Then call `kagi_ex`:
+
+```elixir
 {:ok, results} =
-  Kagi.search(client, "elixir req http client",
+  Kagi.search("elixir req http client",
     lens: :programming,
     limit: 5
   )
@@ -45,22 +52,8 @@ Enum.map(results.results, & &1.url)
 
 ## Configuration
 
-`:transport`, `:req_options`, and `:cloaked_req_options` are configured via application config only. Browser impersonation is an environment-wide decision: once Kagi has flagged your IP, every subsequent request needs the same transport, headers, and TLS fingerprint to recover, so the choice belongs in `config.exs` and not at the call site.
-
-```elixir
-# config/runtime.exs
-config :kagi_ex,
-  session_token: System.fetch_env!("KAGI_SESSION_TOKEN"),
-  transport: :cloaked_req,
-  cloaked_req_options: [impersonate: :chrome_136]
-```
-
-```elixir
-# anywhere in the app
-{:ok, results} = Kagi.search("elixir req http client", lens: :programming, limit: 5)
-```
-
-`cloaked_req` is an optional dependency; add `{:cloaked_req, "~> 0.3"}` to your deps when selecting the `:cloaked_req` transport.
+Set `:req_options` in application config when you need to override the default
+`Req` request options.
 
 ## Search Options
 
@@ -88,7 +81,7 @@ config :kagi_ex,
 
 ```elixir
 {:ok, output} =
-  Kagi.maps(client, "coffee zurich",
+  Kagi.maps("coffee zurich",
     ll: "47.3769,8.5417",
     zoom: 13,
     sort: :rating

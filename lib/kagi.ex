@@ -2,13 +2,13 @@ defmodule Kagi do
   @moduledoc """
   Typed client for [Kagi](https://kagi.com) Search, Summarizer, and Maps.
 
-  `Kagi` uses `Req` by default. Configure
-  `config :kagi_ex, transport: :cloaked_req` to route requests through
-  `CloakedReq` instead. See `Kagi.Client` for the full list of fields.
+  `Kagi` builds `Req` requests and sends them through `CloakedReq`. See
+  `Kagi.Client` for the full list of fields.
 
   ## Quick start
 
-      client = Kagi.new!(session_token: my_session_token())
+      config :kagi_ex, session_token: "..."
+      client = Kagi.new!()
       {:ok, search} = Kagi.search(client, "elixir req", lens: :programming, limit: 5)
       {:ok, summary} = Kagi.summarize(client, "https://elixir-lang.org")
       {:ok, places} = Kagi.maps(client, "coffee zurich", ll: "47.3769,8.5417")
@@ -33,48 +33,38 @@ defmodule Kagi do
   @doc """
   Builds a reusable `Kagi.Client`.
 
-  Only `:session_token` is accepted per call; it falls back to
-  `Application.get_env(:kagi_ex, :session_token)`. `:transport`,
-  `:req_options`, and `:cloaked_req_options` are read from application
-  config only. The session token must be supplied through one of the two
-  sources or `new/1` returns
+  The session token is read from `Application.get_env(:kagi_ex,
+  :session_token)`. `:req_options` is also read from application config. If
+  no session token is configured, `new/0` returns
   `{:error, %Kagi.Error{reason: :missing_session_token}}`.
-
-  ## Options
-
-    * `:session_token` - Kagi session token string. Falls back to
-      `Application.get_env(:kagi_ex, :session_token)`.
 
   ## Application config
 
-    * `:transport` - `:req` (default) or `:cloaked_req`.
+    * `:session_token` - Kagi session token string.
     * `:req_options` - keyword list merged into every `Req` request.
-    * `:cloaked_req_options` - keyword list passed to `CloakedReq.attach/2`.
 
   Returns `{:error, %Kagi.Error{}}` when required configuration is invalid
   or missing.
 
   ## Examples
 
-      {:ok, client} = Kagi.new(session_token: "abc")
-      client.transport
-      #=> :req
+      config :kagi_ex, session_token: "abc"
+      {:ok, client} = Kagi.new()
   """
-  @spec new(keyword()) :: {:ok, Client.t()} | {:error, Error.t()}
-  defdelegate new(options \\ []), to: Client
+  @spec new() :: {:ok, Client.t()} | {:error, Error.t()}
+  defdelegate new, to: Client
 
   @doc """
-  Same as `new/1` but raises `Kagi.Error` on failure.
+  Same as `new/0` but raises `Kagi.Error` on failure.
   """
-  @spec new!(keyword()) :: Client.t()
-  defdelegate new!(options \\ []), to: Client
+  @spec new!() :: Client.t()
+  defdelegate new!, to: Client
 
   @doc """
   Searches Kagi and returns typed results.
 
-  Accepts either a prebuilt `Kagi.Client` or raw `options` for a one-off
-  request. When no client is supplied, `options` may carry `:session_token`
-  alongside search options; the same keyword list is split internally.
+  Accepts either a prebuilt `Kagi.Client` or search options for a one-off
+  request. One-off calls build a client from application config.
 
   ## Search options
 
@@ -95,12 +85,11 @@ defmodule Kagi do
 
   ## Examples
 
-      client = Kagi.new!(session_token: my_session_token())
+      client = Kagi.new!()
       {:ok, %Kagi.Search{results: results}} =
         Kagi.search(client, "elixir req http client", lens: :programming, limit: 3)
 
-      # one-off call without a prebuilt client
-      Kagi.search("elixir lang", session_token: "abc", limit: 5)
+      Kagi.search("elixir lang", limit: 5)
   """
   @spec search(Client.t(), query(), keyword()) :: {:ok, Search.t()} | {:error, Error.t()}
   def search(%Client{} = client, query, options) do
@@ -116,7 +105,7 @@ defmodule Kagi do
   def search(%Client{} = client, query), do: search(client, query, [])
 
   def search(query, options) when is_list(options) do
-    with {:ok, client} <- Client.new(options) do
+    with {:ok, client} <- Client.new() do
       Search.request(client, query, options)
     end
   end
@@ -172,7 +161,7 @@ defmodule Kagi do
 
   ## Examples
 
-      client = Kagi.new!(session_token: my_session_token())
+      client = Kagi.new!()
       {:ok, %Kagi.Summary{summary: markdown}} =
         Kagi.summarize(client, "https://www.rust-lang.org/learn", type: :takeaway)
   """
@@ -190,7 +179,7 @@ defmodule Kagi do
   def summarize(%Client{} = client, url), do: summarize(client, url, [])
 
   def summarize(url, options) when is_list(options) do
-    with {:ok, client} <- Client.new(options) do
+    with {:ok, client} <- Client.new() do
       Summary.request(client, url, options)
     end
   end
@@ -250,7 +239,7 @@ defmodule Kagi do
 
   ## Examples
 
-      client = Kagi.new!(session_token: my_session_token())
+      client = Kagi.new!()
       {:ok, %Kagi.Maps{results: results}} =
         Kagi.maps(client, "coffee zurich", ll: "47.3769,8.5417", sort: :rating)
   """
@@ -268,7 +257,7 @@ defmodule Kagi do
   def maps(%Client{} = client, query), do: maps(client, query, [])
 
   def maps(query, options) when is_list(options) do
-    with {:ok, client} <- Client.new(options) do
+    with {:ok, client} <- Client.new() do
       Maps.request(client, query, options)
     end
   end

@@ -11,20 +11,18 @@ defmodule Kagi.LiveTest do
   @moduletag :live
 
   setup do
-    previous_transport = Application.get_env(:kagi_ex, :transport)
-    previous_cloaked = Application.get_env(:kagi_ex, :cloaked_req_options)
+    previous_session_token = Application.get_env(:kagi_ex, :session_token)
 
     on_exit(fn ->
-      restore_env(:transport, previous_transport)
-      restore_env(:cloaked_req_options, previous_cloaked)
+      restore_env(:session_token, previous_session_token)
     end)
 
-    {:ok, session_token: live_session_token!()}
+    Application.put_env(:kagi_ex, :session_token, live_session_token!())
+    :ok
   end
 
-  test "search returns typed results with normal Req transport", %{session_token: token} do
-    Application.put_env(:kagi_ex, :transport, :req)
-    client = Kagi.new!(session_token: token)
+  test "search returns typed results" do
+    client = Kagi.new!()
 
     assert %Kagi.Search{results: [_ | _]} =
              Kagi.search!(client, "elixir req http client", lens: :programming, limit: 3)
@@ -32,18 +30,8 @@ defmodule Kagi.LiveTest do
     assert Enum.all?(Kagi.search!(client, "elixir lang", limit: 3).results, &search_result?/1)
   end
 
-  test "search returns typed results with CloakedReq transport", %{session_token: token} do
-    Application.put_env(:kagi_ex, :transport, :cloaked_req)
-    Application.put_env(:kagi_ex, :cloaked_req_options, impersonate: :chrome_136)
-    client = Kagi.new!(session_token: token)
-
-    assert %Kagi.Search{results: [_ | _]} = search = Kagi.search!(client, "elixir lang", limit: 3)
-    assert Enum.all?(search.results, &search_result?/1)
-  end
-
-  test "summarize returns markdown through normal Req transport", %{session_token: token} do
-    Application.put_env(:kagi_ex, :transport, :req)
-    client = Kagi.new!(session_token: token)
+  test "summarize returns markdown" do
+    client = Kagi.new!()
 
     assert %Kagi.Summary{summary: summary} =
              Kagi.summarize!(client, "https://www.rust-lang.org/learn")
@@ -52,9 +40,8 @@ defmodule Kagi.LiveTest do
     assert String.trim(summary) != ""
   end
 
-  test "maps returns typed results for a geographic query", %{session_token: token} do
-    Application.put_env(:kagi_ex, :transport, :req)
-    client = Kagi.new!(session_token: token)
+  test "maps returns typed results for a geographic query" do
+    client = Kagi.new!()
 
     assert %Kagi.Maps{results: [_ | _] = results} =
              Kagi.maps!(client, "coffee zurich", ll: "47.3769,8.5417", limit: 3)

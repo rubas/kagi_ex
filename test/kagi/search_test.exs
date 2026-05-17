@@ -48,7 +48,7 @@ defmodule Kagi.SearchTest do
   end
 
   test "rejects incompatible time and date range options before network requests" do
-    client = Kagi.new!(session_token: "token")
+    client = %Kagi.Client{session_token: "token"}
 
     assert {:error, %Error{reason: :invalid_option, message: message}} =
              Kagi.search(client, "rust", time: :week, from: "2026-03-01")

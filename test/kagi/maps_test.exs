@@ -43,7 +43,7 @@ defmodule Kagi.MapsTest do
   end
 
   test "rejects invalid sort option before any network call" do
-    client = Kagi.new!(session_token: "token")
+    client = %Kagi.Client{session_token: "token"}
 
     assert {:error, %Error{reason: :invalid_option, message: message}} =
              Kagi.maps(client, "coffee", sort: :bogus)
@@ -52,7 +52,7 @@ defmodule Kagi.MapsTest do
   end
 
   test "rejects invalid coordinate format" do
-    client = Kagi.new!(session_token: "token")
+    client = %Kagi.Client{session_token: "token"}
 
     assert {:error, %Error{reason: :invalid_option, message: message}} =
              Kagi.maps(client, "coffee", ll: "not-a-coord")
@@ -61,7 +61,7 @@ defmodule Kagi.MapsTest do
   end
 
   test "rejects coordinate outside valid range" do
-    client = Kagi.new!(session_token: "token")
+    client = %Kagi.Client{session_token: "token"}
 
     assert {:error, %Error{reason: :invalid_option, message: message}} =
              Kagi.maps(client, "coffee", ll: "100.0,8.5")
@@ -70,7 +70,7 @@ defmodule Kagi.MapsTest do
   end
 
   test "rejects degenerate bounding box" do
-    client = Kagi.new!(session_token: "token")
+    client = %Kagi.Client{session_token: "token"}
 
     assert {:error, %Error{reason: :invalid_option, message: message}} =
              Kagi.maps(client, "coffee", bbox: "8.5,47.3,8.5,47.4")
@@ -79,7 +79,7 @@ defmodule Kagi.MapsTest do
   end
 
   test "rejects empty query" do
-    client = Kagi.new!(session_token: "token")
+    client = %Kagi.Client{session_token: "token"}
 
     assert {:error, %Error{reason: :invalid_option, message: message}} = Kagi.maps(client, "   ")
     assert message =~ "query"

@@ -5,8 +5,9 @@
 ## Development
 
 - Keep public API documentation and typespecs in sync with code changes.
-- Preserve `Req` as the default transport.
-- Keep `CloakedReq` support explicit via `transport: :cloaked_req`.
+- Build requests with `Req` and send them through `CloakedReq`.
+- Keep HTTP configuration limited to `:req_options` unless a new public contract
+  is explicitly needed.
 - Do not store or log Kagi session tokens.
 - Tests should use fixtures or local test infrastructure by default; live Kagi requests must be opt-in.
 

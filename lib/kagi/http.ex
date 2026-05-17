@@ -15,29 +15,9 @@ defmodule Kagi.HTTP do
       |> Req.new()
       |> Req.merge(options)
 
-    with {:ok, request} <- attach_transport(request, client),
-         {:ok, %Req.Response{status: status, body: body}} <-
-           request |> Req.request() |> normalize_request_error() do
+    with {:ok, %Req.Response{status: status, body: body}} <-
+           request |> CloakedReq.attach() |> Req.request() |> normalize_request_error() do
       handle_status(status, body)
-    end
-  end
-
-  @spec attach_transport(Req.Request.t(), Client.t()) ::
-          {:ok, Req.Request.t()} | {:error, Error.t()}
-  defp attach_transport(%Req.Request{} = request, %Client{transport: :req}), do: {:ok, request}
-
-  defp attach_transport(%Req.Request{} = request, %Client{
-         transport: :cloaked_req,
-         cloaked_req_options: options
-       }) do
-    if Code.ensure_loaded?(CloakedReq) do
-      {:ok, CloakedReq.attach(request, options)}
-    else
-      {:error,
-       Error.new(
-         :invalid_option,
-         "transport :cloaked_req requires the :cloaked_req dependency; add {:cloaked_req, \"~> 0.3\"} to your deps"
-       )}
     end
   end
 
