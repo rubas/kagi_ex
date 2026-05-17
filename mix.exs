@@ -67,7 +67,7 @@ defmodule KagiEx.MixProject do
   defp deps do
     [
       {:req, "~> 0.5"},
-      {:floki, "~> 0.38"},
+      {:lazy_html, "~> 0.1"},
       {:cloaked_req, "~> 0.3.2", optional: true},
       {:credo, "~> 1.7.18", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},

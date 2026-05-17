@@ -36,8 +36,9 @@ defmodule Kagi.Search do
   @doc false
   @spec parse(String.t(), non_neg_integer()) :: {:ok, t()} | {:error, Error.t()}
   def parse(html, limit) when is_binary(html) and is_integer(limit) and limit >= 0 do
-    with {:ok, document} <- Floki.parse_document(html),
-         :ok <- detect_challenge(document, html) do
+    document = LazyHTML.from_document(html)
+
+    with :ok <- detect_challenge(document, html) do
       results =
         document
         |> parse_standard_results(limit)
@@ -47,12 +48,6 @@ defmodule Kagi.Search do
         |> Enum.take(limit)
 
       {:ok, %__MODULE__{results: results, related: parse_related(document)}}
-    else
-      {:error, %Error{} = error} ->
-        {:error, error}
-
-      {:error, reason} ->
-        {:error, Error.new(:parse_error, "failed to parse search results: #{inspect(reason)}")}
     end
   end
 
@@ -197,11 +192,10 @@ defmodule Kagi.Search do
     {:error, Error.new(:invalid_option, "invalid time: #{inspect(value)}")}
   end
 
-  @spec detect_challenge(Floki.html_tree(), String.t()) :: :ok | {:error, Error.t()}
+  @spec detect_challenge(LazyHTML.t(), String.t()) :: :ok | {:error, Error.t()}
   defp detect_challenge(document, html) do
     has_results? =
-      Floki.find(document, "#search-app") != [] or Floki.find(document, ".search-result") != [] or
-        Floki.find(document, ".sr-group .__srgi") != []
+      not Enum.empty?(LazyHTML.query(document, "#search-app, .search-result, .sr-group .__srgi"))
 
     challenge? =
       html
@@ -224,55 +218,45 @@ defmodule Kagi.Search do
     end
   end
 
-  @spec parse_standard_results(Floki.html_tree(), non_neg_integer()) :: [SearchResult.t()]
+  @spec parse_standard_results(LazyHTML.t(), non_neg_integer()) :: [SearchResult.t()]
   defp parse_standard_results(document, limit) do
     document
-    |> Floki.find(".search-result")
-    |> Enum.flat_map(fn element ->
-      with [link | _] <- Floki.find(element, ".__sri_title_link"),
-           [url | _] <- Floki.attribute(link, "href") do
-        [
-          %SearchResult{
-            url: url,
-            title: link |> Floki.text() |> String.trim(),
-            snippet: element |> Floki.find(".__sri-desc") |> Floki.text() |> String.trim()
-          }
-        ]
-      else
-        _value -> []
-      end
-    end)
+    |> LazyHTML.query(".search-result")
+    |> Enum.flat_map(&parse_result(&1, ".__sri_title_link"))
     |> Enum.take(limit)
   end
 
-  @spec parse_grouped_results(Floki.html_tree(), non_neg_integer()) :: [SearchResult.t()]
+  @spec parse_grouped_results(LazyHTML.t(), non_neg_integer()) :: [SearchResult.t()]
   defp parse_grouped_results(_document, 0), do: []
 
   defp parse_grouped_results(document, limit) do
     document
-    |> Floki.find(".sr-group .__srgi")
-    |> Enum.flat_map(fn element ->
-      with [link | _] <- Floki.find(element, ".__srgi-title a"),
-           [url | _] <- Floki.attribute(link, "href") do
-        [
-          %SearchResult{
-            url: url,
-            title: link |> Floki.text() |> String.trim(),
-            snippet: element |> Floki.find(".__sri-desc") |> Floki.text() |> String.trim()
-          }
-        ]
-      else
-        _value -> []
-      end
-    end)
+    |> LazyHTML.query(".sr-group .__srgi")
+    |> Enum.flat_map(&parse_result(&1, ".__srgi-title a"))
     |> Enum.take(limit)
   end
 
-  @spec parse_related(Floki.html_tree()) :: [String.t()]
+  @spec parse_result(LazyHTML.t(), String.t()) :: [SearchResult.t()]
+  defp parse_result(element, link_selector) do
+    with link when not is_nil(link) <- element |> LazyHTML.query(link_selector) |> Enum.at(0),
+         [url | _] <- LazyHTML.attribute(link, "href") do
+      [
+        %SearchResult{
+          url: url,
+          title: link |> LazyHTML.text() |> String.trim(),
+          snippet: element |> LazyHTML.query(".__sri-desc") |> LazyHTML.text() |> String.trim()
+        }
+      ]
+    else
+      _value -> []
+    end
+  end
+
+  @spec parse_related(LazyHTML.t()) :: [String.t()]
   defp parse_related(document) do
     document
-    |> Floki.find(".related-searches a span")
-    |> Enum.map(fn element -> element |> Floki.text() |> String.trim() end)
+    |> LazyHTML.query(".related-searches a span")
+    |> Enum.map(fn element -> element |> LazyHTML.text() |> String.trim() end)
     |> Enum.reject(&(&1 == ""))
   end
 end
