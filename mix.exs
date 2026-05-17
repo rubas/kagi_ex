@@ -29,15 +29,20 @@ defmodule KagiEx.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "CHANGELOG.md", "RELEASE.md"],
+      extras: ["README.md", "CHANGELOG.md", "usage-rules.md", "RELEASE.md"],
       source_url: "https://github.com/rubas/kagi_ex",
-      homepage_url: "https://github.com/rubas/kagi_ex"
+      homepage_url: "https://github.com/rubas/kagi_ex",
+      groups_for_modules: [
+        Search: [Kagi.Search, Kagi.SearchResult],
+        Summarizer: [Kagi.Summary],
+        Maps: [Kagi.Maps, Kagi.MapsResult, Kagi.MapsResult.Coordinates]
+      ]
     ]
   end
 
   @spec description() :: String.t()
   defp description do
-    "Typed Elixir client for querying Kagi Search and Summarizer through Req"
+    "Typed Elixir client for Kagi Search, Summarizer, and Maps, built on Req."
   end
 
   @spec package() :: keyword()

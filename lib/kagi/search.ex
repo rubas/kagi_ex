@@ -1,6 +1,18 @@
 defmodule Kagi.Search do
   @moduledoc """
-  Search response returned by `Kagi.search/2` and `Kagi.search/3`.
+  Search response returned by `Kagi.search/1..3`.
+
+  The struct carries the parsed result rows plus Kagi's "related searches"
+  suggestions. Parsing is performed by `LazyHTML` against the HTML returned by
+  `https://kagi.com/html/search`.
+
+  ## Fields
+
+    * `:results` - list of `Kagi.SearchResult` rows, truncated to the
+      requested `:limit`. Standard results come first, then grouped results
+      fill the remaining slots.
+    * `:related` - related-search strings displayed in the sidebar; empty
+      list when Kagi did not return any.
   """
 
   alias Kagi.Client
@@ -8,10 +20,16 @@ defmodule Kagi.Search do
   alias Kagi.HTTP
   alias Kagi.SearchResult
 
+  @typedoc "Search lens passed via the `:lens` option."
   @type lens :: :default | :programming | :forums | :pdfs | :non_commercial | :world_news
+
+  @typedoc "Result ordering passed via the `:sort` option."
   @type sort :: :recency | :website | :ad_trackers
+
+  @typedoc "Relative time window passed via the `:time` option."
   @type time_range :: :day | :week | :month | :year
 
+  @typedoc "A parsed Kagi search response."
   @type t :: %__MODULE__{results: [SearchResult.t()], related: [String.t()]}
 
   defstruct results: [], related: []

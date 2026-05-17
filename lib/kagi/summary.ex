@@ -1,13 +1,26 @@
 defmodule Kagi.Summary do
   @moduledoc """
-  Summary response returned by `Kagi.summarize/2` and `Kagi.summarize/3`.
+  Summary response returned by `Kagi.summarize/1..3`.
+
+  The struct holds the rendered Markdown produced by Kagi's Summarizer. The
+  Summarizer returns its result as a multi-chunk stream terminated by a NUL
+  byte; this module accumulates the stream and pulls Markdown out of the
+  final `final:` or `new_message.json:` payload.
+
+  ## Fields
+
+    * `:summary` - Markdown text. Headings, lists, and links may be present
+      depending on the source URL and `:type` option.
   """
 
   alias Kagi.Client
   alias Kagi.Error
   alias Kagi.HTTP
 
+  @typedoc "Summary style requested via the `:type` option."
   @type summary_type :: :summary | :takeaway
+
+  @typedoc "A parsed Kagi summarizer response."
   @type t :: %__MODULE__{summary: String.t()}
 
   defstruct [:summary]

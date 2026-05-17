@@ -2,18 +2,36 @@ defmodule Kagi.Client do
   @moduledoc """
   Reusable Kagi client configuration.
 
-  A client contains the resolved session token, the request transport, and
-  transport-specific options. It performs no network request when built.
+  A client carries the resolved session token, the HTTP transport, and
+  transport-specific options. Building a client performs no network I/O - the
+  session token is checked for presence only.
+
+  Use `Kagi.new/1` (the canonical entry point) or `Kagi.Client.new/1` directly.
+  Clients are immutable; build once at application start and reuse for every
+  request to avoid repeating token resolution.
 
   Only `:session_token` is accepted per call. `:transport`, `:req_options`,
   and `:cloaked_req_options` are read from application config so the choice
   is environment-wide and call sites stay focused on the query itself.
+
+  ## Fields
+
+    * `:session_token` - Kagi session token string.
+    * `:transport` - `:req` (default) or `:cloaked_req`. Configured via
+      `Application.put_env(:kagi_ex, :transport, ...)`.
+    * `:req_options` - keyword list merged into every `Req` request.
+      Configured via `Application.put_env(:kagi_ex, :req_options, ...)`.
+    * `:cloaked_req_options` - keyword list passed to `CloakedReq.attach/2`
+      when `:transport` is `:cloaked_req`. Configured via
+      `Application.put_env(:kagi_ex, :cloaked_req_options, ...)`.
   """
 
   alias Kagi.Error
 
+  @typedoc "HTTP transport selected for outbound Kagi requests."
   @type transport :: :req | :cloaked_req
 
+  @typedoc "A configured Kagi client."
   @type t :: %__MODULE__{
           session_token: String.t(),
           transport: transport(),
@@ -24,9 +42,18 @@ defmodule Kagi.Client do
   defstruct [:session_token, :transport, req_options: [], cloaked_req_options: []]
 
   @doc """
-  Builds a `%Kagi.Client{}` with a resolved session token.
+  Builds a `%Kagi.Client{}` from `options`.
 
-  See `Kagi.new/1` for supported options and token lookup order.
+  See `Kagi.new/1` for the full list of supported options, defaults, and the
+  application-config fallback. Returns `{:ok, client}` on success or
+  `{:error, %Kagi.Error{}}` for an invalid or missing session token,
+  an unsupported `:transport`, or a non-keyword `:req_options` /
+  `:cloaked_req_options`.
+
+  ## Examples
+
+      {:ok, client} = Kagi.Client.new(session_token: "abc")
+      {:error, %Kagi.Error{reason: :missing_session_token}} = Kagi.Client.new()
   """
   @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options \\ []) when is_list(options) do
@@ -45,7 +72,7 @@ defmodule Kagi.Client do
   end
 
   @doc """
-  Builds a `%Kagi.Client{}` or raises `Kagi.Error`.
+  Same as `new/1` but raises `Kagi.Error` on failure.
   """
   @spec new!(keyword()) :: t()
   def new!(options \\ []) do

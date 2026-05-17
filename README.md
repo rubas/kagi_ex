@@ -1,6 +1,6 @@
 # kagi_ex
 
-`kagi_ex` is a typed Elixir client for Kagi Search and Summarizer.
+`kagi_ex` is a typed Elixir client for Kagi Search, Summarizer, and Maps.
 
 Docs: <https://hexdocs.pm/kagi_ex>
 
@@ -84,12 +84,42 @@ config :kagi_ex,
 - `:type` - `:summary` or `:takeaway`
 - `:lang` - target language code, default `"EN"`
 
+## Maps
+
+```elixir
+{:ok, output} =
+  Kagi.maps(client, "coffee zurich",
+    ll: "47.3769,8.5417",
+    zoom: 13,
+    sort: :rating
+  )
+
+Enum.map(output.results, & &1.name)
+```
+
+`Kagi.maps/2` and `Kagi.maps/3` accept:
+
+- `:limit` - maximum result count (default `10`)
+- `:ll` - center coordinate as `"LAT,LON"`
+- `:bbox` - bounding box as `"WEST,SOUTH,EAST,NORTH"`
+- `:zoom` - zoom level (number)
+- `:sort` - `:relevance`, `:rating`, `:distance`, or `:price`
+- `:order` - `:asc` or `:desc`; defaults are `:desc` for `:rating`, `:asc` for `:distance` and `:price`
+
+Sorting and the limit apply client-side to the parsed response.
+
 ## Returned Types
 
 Search returns `{:ok, %Kagi.Search{results: [...], related: [...]}}`, where
 each result is a `%Kagi.SearchResult{url: ..., title: ..., snippet: ...}`.
 
 Summarizer returns `{:ok, %Kagi.Summary{summary: markdown}}`.
+
+Maps returns `{:ok, %Kagi.Maps{results: [%Kagi.MapsResult{}]}}`. Each
+`Kagi.MapsResult` carries `name`, `address`, `coordinates`
+(`%Kagi.MapsResult.Coordinates{latitude:, longitude:}`), plus optional `phone`,
+`url`, `source`, `id`, `rating`, `review_count`, `price`, `distance`,
+`hours_now`, `types`, `links`, and `images`.
 
 Failures return `{:error, %Kagi.Error{reason: reason, message: message}}`.
 

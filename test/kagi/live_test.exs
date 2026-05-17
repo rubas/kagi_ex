@@ -52,12 +52,31 @@ defmodule Kagi.LiveTest do
     assert String.trim(summary) != ""
   end
 
+  test "maps returns typed results for a geographic query", %{session_token: token} do
+    Application.put_env(:kagi_ex, :transport, :req)
+    client = Kagi.new!(session_token: token)
+
+    assert %Kagi.Maps{results: [_ | _] = results} =
+             Kagi.maps!(client, "coffee zurich", ll: "47.3769,8.5417", limit: 3)
+
+    assert Enum.all?(results, &maps_result?/1)
+  end
+
   defp restore_env(key, nil), do: Application.delete_env(:kagi_ex, key)
   defp restore_env(key, value), do: Application.put_env(:kagi_ex, key, value)
 
   defp search_result?(%Kagi.SearchResult{url: url, title: title, snippet: snippet}) do
     String.starts_with?(url, "http") and title != "" and is_binary(snippet)
   end
+
+  defp maps_result?(%Kagi.MapsResult{
+         name: name,
+         coordinates: %Kagi.MapsResult.Coordinates{latitude: lat, longitude: lon}
+       }) do
+    is_binary(name) and name != "" and is_number(lat) and is_number(lon)
+  end
+
+  defp maps_result?(_other), do: false
 
   defp live_session_token! do
     token = System.get_env("KAGI_SESSION_TOKEN") || read_xdg_token()
