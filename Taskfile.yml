@@ -1,0 +1,78 @@
+version: "3"
+
+tasks:
+  setup:
+    desc: Install dependencies
+    cmds:
+      - mix deps.get
+
+  fix:
+    desc: Auto-fix formatting and linting issues
+    deps: [fix:elixir]
+
+  fix:elixir:
+    deps: [compile]
+    cmds:
+      - mix format
+
+  test:
+    desc: Run all checks and tests
+    deps: [test:format, test:lint, test:types, test:unit]
+
+  compile:
+    desc: Compile the project
+    run: once
+    cmds:
+      - MIX_ENV=test mix compile --warnings-as-errors
+
+  test:format:
+    deps: [compile]
+    cmds:
+      - MIX_ENV=test mix format --check-formatted --dry-run
+
+  test:lint:
+    deps: [compile]
+    cmds:
+      - MIX_ENV=test mix credo --strict
+
+  test:types:
+    deps: [compile]
+    cmds:
+      - MIX_ENV=test mix dialyzer
+
+  test:unit:
+    deps: [compile]
+    cmds:
+      - MIX_ENV=test mix test --color
+
+  test:live:
+    desc: Run opt-in live Kagi checks with a real session token
+    deps: [compile]
+    cmds:
+      - MIX_ENV=test mix test --include live --only live --color
+
+  security:
+    desc: Run security audits
+    deps: [security:deps]
+
+  security:deps:
+    deps: [compile]
+    cmds:
+      - MIX_ENV=test mix deps.audit
+
+  sync:rules:
+    cmds:
+      - mix usage_rules.sync --yes
+
+  upgrade:
+    desc: Upgrade all dependencies
+    cmds:
+      - mix deps.update --all
+      - mix deps.get
+      - mix deps.compile
+      - task: sync:rules
+      - mix hex.outdated
+
+  check:
+    desc: Full quality gate
+    deps: [test, security]
