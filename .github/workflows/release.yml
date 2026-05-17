@@ -33,9 +33,12 @@ jobs:
       - name: Resolve release target
         id: resolve
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
             VERSION="${TAG#v}"
             SHOULD_RELEASE=true
           else

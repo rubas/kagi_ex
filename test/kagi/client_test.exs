@@ -31,16 +31,6 @@ defmodule Kagi.ClientTest do
              Kagi.new(session_token: " token ")
   end
 
-  test "builds cloaked_req client when selected" do
-    assert {:ok,
-            %Client{transport: :cloaked_req, cloaked_req_options: [impersonate: :chrome_136]}} =
-             Kagi.new(
-               session_token: "token",
-               transport: :cloaked_req,
-               cloaked_req_options: [impersonate: :chrome_136]
-             )
-  end
-
   test "resolves token from application config" do
     Application.put_env(:kagi_ex, :session_token, "config-token")
 
@@ -53,7 +43,7 @@ defmodule Kagi.ClientTest do
     assert {:ok, %Client{session_token: "explicit"}} = Kagi.new(session_token: "explicit")
   end
 
-  test "transport and cloaked_req_options fall back to application config" do
+  test "transport and cloaked_req_options come from application config" do
     Application.put_env(:kagi_ex, :transport, :cloaked_req)
     Application.put_env(:kagi_ex, :cloaked_req_options, impersonate: :chrome_136)
 
@@ -64,11 +54,16 @@ defmodule Kagi.ClientTest do
             }} = Kagi.new(session_token: "token")
   end
 
-  test "per-call transport overrides application config" do
+  test "per-call :transport, :req_options, :cloaked_req_options are ignored" do
     Application.put_env(:kagi_ex, :transport, :cloaked_req)
 
-    assert {:ok, %Client{transport: :req}} =
-             Kagi.new(session_token: "token", transport: :req)
+    assert {:ok, %Client{transport: :cloaked_req, req_options: [], cloaked_req_options: []}} =
+             Kagi.new(
+               session_token: "token",
+               transport: :req,
+               req_options: [retry: false],
+               cloaked_req_options: [impersonate: :chrome_136]
+             )
   end
 
   test "returns structured error when no token exists" do

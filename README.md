@@ -1,6 +1,6 @@
 # kagi_ex
 
-`kagi_ex` is a typed Elixir client for Kagi Search and Summarizer.
+`kagi_ex` is a typed Elixir client for Kagi Search, Summarizer, and Maps.
 
 Docs: <https://hexdocs.pm/kagi_ex>
 
@@ -45,9 +45,7 @@ Enum.map(results.results, & &1.url)
 
 ## Configuration
 
-`:transport`, `:req_options`, and `:cloaked_req_options` can be set per call or as application config. Per-call options always win.
-
-Browser impersonation is normally an environment-wide decision, not a per-request one: once Kagi has flagged your IP, every subsequent request needs the same transport, headers, and TLS fingerprint to recover. Configuring `:cloaked_req` once in `config.exs` keeps the choice in one place and lets call sites stay focused on the query itself.
+`:transport`, `:req_options`, and `:cloaked_req_options` are configured via application config only. Browser impersonation is an environment-wide decision: once Kagi has flagged your IP, every subsequent request needs the same transport, headers, and TLS fingerprint to recover, so the choice belongs in `config.exs` and not at the call site.
 
 ```elixir
 # config/runtime.exs
@@ -63,12 +61,6 @@ config :kagi_ex,
 ```
 
 `cloaked_req` is an optional dependency; add `{:cloaked_req, "~> 0.3"}` to your deps when selecting the `:cloaked_req` transport.
-
-Override per call when you need a different transport for one request:
-
-```elixir
-Kagi.new!(transport: :req)
-```
 
 ## Search Options
 
@@ -92,12 +84,42 @@ Kagi.new!(transport: :req)
 - `:type` - `:summary` or `:takeaway`
 - `:lang` - target language code, default `"EN"`
 
+## Maps
+
+```elixir
+{:ok, output} =
+  Kagi.maps(client, "coffee zurich",
+    ll: "47.3769,8.5417",
+    zoom: 13,
+    sort: :rating
+  )
+
+Enum.map(output.results, & &1.name)
+```
+
+`Kagi.maps/2` and `Kagi.maps/3` accept:
+
+- `:limit` - maximum result count (default `10`)
+- `:ll` - center coordinate as `"LAT,LON"`
+- `:bbox` - bounding box as `"WEST,SOUTH,EAST,NORTH"`
+- `:zoom` - zoom level (number)
+- `:sort` - `:relevance`, `:rating`, `:distance`, or `:price`
+- `:order` - `:asc` or `:desc`; defaults are `:desc` for `:rating`, `:asc` for `:distance` and `:price`
+
+Sorting and the limit apply client-side to the parsed response.
+
 ## Returned Types
 
 Search returns `{:ok, %Kagi.Search{results: [...], related: [...]}}`, where
 each result is a `%Kagi.SearchResult{url: ..., title: ..., snippet: ...}`.
 
 Summarizer returns `{:ok, %Kagi.Summary{summary: markdown}}`.
+
+Maps returns `{:ok, %Kagi.Maps{results: [%Kagi.MapsResult{}]}}`. Each
+`Kagi.MapsResult` carries `name`, `address`, `coordinates`
+(`%Kagi.MapsResult.Coordinates{latitude:, longitude:}`), plus optional `phone`,
+`url`, `source`, `id`, `rating`, `review_count`, `price`, `distance`,
+`hours_now`, `types`, `links`, and `images`.
 
 Failures return `{:error, %Kagi.Error{reason: reason, message: message}}`.
 
