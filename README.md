@@ -45,9 +45,7 @@ Enum.map(results.results, & &1.url)
 
 ## Configuration
 
-`:transport`, `:req_options`, and `:cloaked_req_options` can be set per call or as application config. Per-call options always win.
-
-Browser impersonation is normally an environment-wide decision, not a per-request one: once Kagi has flagged your IP, every subsequent request needs the same transport, headers, and TLS fingerprint to recover. Configuring `:cloaked_req` once in `config.exs` keeps the choice in one place and lets call sites stay focused on the query itself.
+`:transport`, `:req_options`, and `:cloaked_req_options` are configured via application config only. Browser impersonation is an environment-wide decision: once Kagi has flagged your IP, every subsequent request needs the same transport, headers, and TLS fingerprint to recover, so the choice belongs in `config.exs` and not at the call site.
 
 ```elixir
 # config/runtime.exs
@@ -63,12 +61,6 @@ config :kagi_ex,
 ```
 
 `cloaked_req` is an optional dependency; add `{:cloaked_req, "~> 0.3"}` to your deps when selecting the `:cloaked_req` transport.
-
-Override per call when you need a different transport for one request:
-
-```elixir
-Kagi.new!(transport: :req)
-```
 
 ## Search Options
 

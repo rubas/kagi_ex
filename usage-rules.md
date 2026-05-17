@@ -30,19 +30,13 @@ Missing tokens return `{:error, %Kagi.Error{reason: :missing_session_token}}`.
 
 ## Transport
 
-Default transport is normal `Req`. Set `:transport`, `:req_options`, and `:cloaked_req_options` per call or, more commonly, once in application config so the choice is environment-wide:
+Default transport is normal `Req`. `:transport`, `:req_options`, and `:cloaked_req_options` are configured via application config only - they are not accepted per call.
 
 ```elixir
 config :kagi_ex,
   session_token: System.fetch_env!("KAGI_SESSION_TOKEN"),
   transport: :cloaked_req,
   cloaked_req_options: [impersonate: :chrome_136]
-```
-
-Per-call options override the application config:
-
-```elixir
-Kagi.new!(transport: :req)
 ```
 
 `cloaked_req` is an optional dependency. Add `{:cloaked_req, "~> 0.3"}` to your deps when selecting the `:cloaked_req` transport.

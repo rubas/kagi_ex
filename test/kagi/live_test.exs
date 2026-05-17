@@ -11,11 +11,20 @@ defmodule Kagi.LiveTest do
   @moduletag :live
 
   setup do
+    previous_transport = Application.get_env(:kagi_ex, :transport)
+    previous_cloaked = Application.get_env(:kagi_ex, :cloaked_req_options)
+
+    on_exit(fn ->
+      restore_env(:transport, previous_transport)
+      restore_env(:cloaked_req_options, previous_cloaked)
+    end)
+
     {:ok, session_token: live_session_token!()}
   end
 
   test "search returns typed results with normal Req transport", %{session_token: token} do
-    client = Kagi.new!(session_token: token, transport: :req)
+    Application.put_env(:kagi_ex, :transport, :req)
+    client = Kagi.new!(session_token: token)
 
     assert %Kagi.Search{results: [_ | _]} =
              Kagi.search!(client, "elixir req http client", lens: :programming, limit: 3)
@@ -24,19 +33,17 @@ defmodule Kagi.LiveTest do
   end
 
   test "search returns typed results with CloakedReq transport", %{session_token: token} do
-    client =
-      Kagi.new!(
-        session_token: token,
-        transport: :cloaked_req,
-        cloaked_req_options: [impersonate: :chrome_136]
-      )
+    Application.put_env(:kagi_ex, :transport, :cloaked_req)
+    Application.put_env(:kagi_ex, :cloaked_req_options, impersonate: :chrome_136)
+    client = Kagi.new!(session_token: token)
 
     assert %Kagi.Search{results: [_ | _]} = search = Kagi.search!(client, "elixir lang", limit: 3)
     assert Enum.all?(search.results, &search_result?/1)
   end
 
   test "summarize returns markdown through normal Req transport", %{session_token: token} do
-    client = Kagi.new!(session_token: token, transport: :req)
+    Application.put_env(:kagi_ex, :transport, :req)
+    client = Kagi.new!(session_token: token)
 
     assert %Kagi.Summary{summary: summary} =
              Kagi.summarize!(client, "https://www.rust-lang.org/learn")
@@ -44,6 +51,9 @@ defmodule Kagi.LiveTest do
     assert is_binary(summary)
     assert String.trim(summary) != ""
   end
+
+  defp restore_env(key, nil), do: Application.delete_env(:kagi_ex, key)
+  defp restore_env(key, value), do: Application.put_env(:kagi_ex, key, value)
 
   defp search_result?(%Kagi.SearchResult{url: url, title: title, snippet: snippet}) do
     String.starts_with?(url, "http") and title != "" and is_binary(snippet)

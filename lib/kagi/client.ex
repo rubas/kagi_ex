@@ -4,6 +4,10 @@ defmodule Kagi.Client do
 
   A client contains the resolved session token, the request transport, and
   transport-specific options. It performs no network request when built.
+
+  Only `:session_token` is accepted per call. `:transport`, `:req_options`,
+  and `:cloaked_req_options` are read from application config so the choice
+  is environment-wide and call sites stay focused on the query itself.
   """
 
   alias Kagi.Error
@@ -27,10 +31,9 @@ defmodule Kagi.Client do
   @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(options \\ []) when is_list(options) do
     with {:ok, session_token} <- Kagi.SessionToken.resolve(options),
-         {:ok, transport} <-
-           validate_transport(Keyword.get(options, :transport, configured(:transport, :req))),
-         {:ok, req_options} <- validate_keyword_option(options, :req_options),
-         {:ok, cloaked_req_options} <- validate_keyword_option(options, :cloaked_req_options) do
+         {:ok, transport} <- validate_transport(configured(:transport, :req)),
+         {:ok, req_options} <- validate_keyword_option(:req_options),
+         {:ok, cloaked_req_options} <- validate_keyword_option(:cloaked_req_options) do
       {:ok,
        %__MODULE__{
          session_token: session_token,
@@ -68,9 +71,9 @@ defmodule Kagi.Client do
      )}
   end
 
-  @spec validate_keyword_option(keyword(), atom()) :: {:ok, keyword()} | {:error, Error.t()}
-  defp validate_keyword_option(options, key) do
-    value = Keyword.get(options, key, configured(key, []))
+  @spec validate_keyword_option(atom()) :: {:ok, keyword()} | {:error, Error.t()}
+  defp validate_keyword_option(key) do
+    value = configured(key, [])
 
     if Keyword.keyword?(value) do
       {:ok, value}

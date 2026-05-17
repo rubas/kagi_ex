@@ -2,8 +2,9 @@ defmodule Kagi do
   @moduledoc """
   Typed client for Kagi Search and Summarizer.
 
-  `Kagi` uses `Req` by default. Pass `transport: :cloaked_req` to route requests
-  through `CloakedReq` instead.
+  `Kagi` uses `Req` by default. Configure
+  `config :kagi_ex, transport: :cloaked_req` to route requests through
+  `CloakedReq` instead.
   """
 
   alias Kagi.Client
@@ -14,14 +15,18 @@ defmodule Kagi do
   @doc """
   Builds a reusable Kagi client.
 
-  Each option falls back to `Application.get_env(:kagi_ex, key)`. Per-call
-  options always override the application config. The session token must be
-  supplied through one of the two sources or `Kagi.new/1` returns
-  `{:error, %Kagi.Error{reason: :missing_session_token}}`.
+  Only `:session_token` is accepted per call; it falls back to
+  `Application.get_env(:kagi_ex, :session_token)`. `:transport`,
+  `:req_options`, and `:cloaked_req_options` are read from application
+  config only.
 
   ## Options
 
-  - `:session_token` - Kagi session token string.
+  - `:session_token` - Kagi session token string. Falls back to
+    `Application.get_env(:kagi_ex, :session_token)`.
+
+  ## Application config
+
   - `:transport` - `:req` (default) or `:cloaked_req`.
   - `:req_options` - options merged into every `Req` request.
   - `:cloaked_req_options` - options passed to `CloakedReq.attach/2`.
