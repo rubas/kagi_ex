@@ -80,7 +80,7 @@ defmodule Kagi.Search do
   defp query_params(query, options) do
     with {:ok, query} <- build_query(query, options),
          {:ok, options} <- validate_options(options) do
-      [
+      params = [
         {:plain, :r, options[:region]},
         {:mapped, :l, options[:lens], &lens_value/1},
         {:mapped, :order, options[:sort], &sort_value/1},
@@ -89,7 +89,8 @@ defmodule Kagi.Search do
         {:plain, :to_date, options[:to]},
         {:plain, :verbatim, if(options[:verbatim], do: "1")}
       ]
-      |> Enum.reduce_while({:ok, [q: query]}, &put_query_param/2)
+
+      Enum.reduce_while(params, {:ok, [q: query]}, &put_query_param/2)
     end
   end
 
@@ -207,8 +208,8 @@ defmodule Kagi.Search do
 
   @spec detect_challenge(LazyHTML.t(), String.t()) :: :ok | {:error, Error.t()}
   defp detect_challenge(document, html) do
-    has_results? =
-      not Enum.empty?(LazyHTML.query(document, "#search-app, .search-result, .sr-group .__srgi"))
+    results = LazyHTML.query(document, "#search-app, .search-result, .sr-group .__srgi")
+    has_results? = not Enum.empty?(results)
 
     challenge? =
       html
@@ -251,7 +252,7 @@ defmodule Kagi.Search do
 
   @spec parse_result(LazyHTML.t(), String.t()) :: [SearchResult.t()]
   defp parse_result(element, link_selector) do
-    with link when not is_nil(link) <- element |> LazyHTML.query(link_selector) |> Enum.at(0),
+    with link when link != nil <- element |> LazyHTML.query(link_selector) |> Enum.at(0),
          [url | _] <- LazyHTML.attribute(link, "href") do
       [
         %SearchResult{

@@ -77,7 +77,8 @@ defmodule Kagi.LiveTest do
 
   defp read_xdg_token do
     with xdg when is_binary(xdg) <- System.get_env("XDG_CONFIG_HOME"),
-         {:ok, contents} <- File.read(Path.join([xdg, "kagi", "session-token"])) do
+         path = Path.join([xdg, "kagi", "session-token"]),
+         {:ok, contents} <- File.read(path) do
       String.trim(contents)
     else
       _other -> nil

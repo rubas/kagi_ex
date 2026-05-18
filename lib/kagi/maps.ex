@@ -177,9 +177,7 @@ defmodule Kagi.Maps do
     parts = value |> String.split(",") |> Enum.map(&String.trim/1)
 
     if length(parts) == expected do
-      parts
-      |> Enum.reduce_while([], &parse_number_part/2)
-      |> case do
+      case Enum.reduce_while(parts, [], &parse_number_part/2) do
         {:error, :invalid} -> {:error, invalid_numbers_error(value, format)}
         numbers -> {:ok, Enum.reverse(numbers)}
       end
