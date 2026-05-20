@@ -5,18 +5,18 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+permissions: {}
 
 jobs:
   test:
     if: github.event_name == 'push' || github.event.pull_request.user.login == github.repository_owner
     name: OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # checkout source
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-test-${{ matrix.otp }}-${{ matrix.elixir }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -27,6 +27,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install zizmor
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://github.com/zizmorcore/zizmor/releases/download/v1.25.2/zizmor-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C "$HOME/.local/bin" zizmor
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - uses: erlef/setup-beam@fc68ffb90438ef2936bbb3251622353b3dcb2f93 # v1.24.0
         env:
@@ -67,3 +77,5 @@ jobs:
 
       - name: Elixir tests
         run: MIX_ENV=test mix test --color
+
+      - run: zizmor --offline --persona=pedantic .github/workflows
