@@ -45,6 +45,11 @@ tasks:
     cmds:
       - MIX_ENV=test mix test --color
 
+  test:zizmor:
+    desc: Lint GitHub Actions workflows for security issues
+    cmds:
+      - zizmor --offline --persona=pedantic .github/workflows
+
   test:live:
     desc: Run opt-in live Kagi checks with a real session token
     deps: [compile]
