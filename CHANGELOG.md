@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.1.1] - 23.05.2026
+
+### Changed
+
+- Update `cloaked_req` to `~> 0.4.0`, which runs native HTTP requests on the shared Tokio runtime, aborts in-flight requests when the caller exits, and honours Req `connect_options` for proxy configuration.
+
 ## [0.1.0] - 17.05.2026
 
 ### Added
