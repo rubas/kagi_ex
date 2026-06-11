@@ -41,7 +41,12 @@ Enum.map(results.results, & &1.url)
 ## Configuration
 
 Set `:req_options` in application config when you need to override the default
-`Req` request options.
+`Req` request options, including `CloakedReq` adapter options such as
+`:impersonate`.
+
+Requests follow no redirects and retry nothing by default, so one call maps to
+one HTTP request and the session cookie never travels to another host. Opt back
+in via `:req_options` with `redirect: true` or `retry: :safe_transient`.
 
 ## Search Options
 
