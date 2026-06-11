@@ -157,9 +157,14 @@ defmodule Kagi do
 
     * `:type` - `:summary` (default) or `:takeaway`.
     * `:lang` - target language code, default `"EN"`.
+    * `:timeout` - total request timeout in milliseconds. Defaults to the
+      client's `req_options[:receive_timeout]` when set, otherwise `60_000`;
+      the summarizer generates summaries synchronously and long pages need
+      more than typical HTTP timeouts.
 
   Returns `{:error, %Kagi.Error{}}` for invalid options, HTTP failures,
-  and parse failures.
+  parse failures, and summarizer-reported failures
+  (`%Kagi.Error{reason: :summarizer_error}`).
 
   ## Examples
 
