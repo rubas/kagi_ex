@@ -19,12 +19,19 @@ end
 
 ## Authentication
 
-Kagi requires a session token. Put it in application config:
+Kagi requires a session token. Log in at [kagi.com](https://kagi.com), open
+your browser's cookies for the site, and copy the value of the `kagi_session`
+cookie - only the value, not the whole `Cookie` header. Put it in application
+config:
 
 ```elixir
 config :kagi_ex,
   session_token: System.fetch_env!("KAGI_SESSION_TOKEN")
 ```
+
+Tokens with characters that cannot appear in a cookie value (a pasted
+`key=value; other=...` header, for example) return
+`{:error, %Kagi.Error{reason: :invalid_session_token}}`.
 
 ## Usage
 

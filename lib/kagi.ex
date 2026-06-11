@@ -34,9 +34,10 @@ defmodule Kagi do
   @doc """
   Builds a reusable `Kagi.Client`.
 
-  Reads `:session_token` and `:req_options` from application config. If the
-  session token is missing or invalid, returns
-  `{:error, %Kagi.Error{reason: :missing_session_token}}`.
+  Reads `:session_token` and `:req_options` from application config. A missing
+  token returns `{:error, %Kagi.Error{reason: :missing_session_token}}`; a
+  token that is not a valid cookie value returns
+  `{:error, %Kagi.Error{reason: :invalid_session_token}}`.
 
   ## Application config
 

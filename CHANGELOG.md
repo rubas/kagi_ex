@@ -11,8 +11,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - `:timeout` option for `Kagi.summarize/1..3`, the total request timeout in
   milliseconds. Precedence: per-call `:timeout`, then the client's
   `req_options[:receive_timeout]`, then the summarizer default of 60 seconds.
+- `:invalid_session_token` error reason: tokens with characters that cannot
+  appear in a cookie value (a pasted `Cookie` header, for example) are rejected
+  before any request instead of being sent raw.
 
 ### Fixed
+
+- `inspect(%Kagi.Client{})` no longer prints the session token; the field is
+  redacted from the derived `Inspect` implementation.
 
 - Search results keep Kagi's ranking: grouped and standard rows are parsed in
   one document-order pass, so `:limit` no longer drops grouped results that
