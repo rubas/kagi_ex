@@ -12,7 +12,7 @@ It builds `Req` requests and sends them through
 ```elixir
 def deps do
   [
-    {:kagi_ex, "~> 0.1.0"}
+    {:kagi_ex, "~> 0.2.0"}
   ]
 end
 ```
