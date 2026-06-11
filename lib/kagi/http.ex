@@ -6,17 +6,23 @@ defmodule Kagi.HTTP do
 
   @type response :: %{status: pos_integer(), body: term()}
 
+  # Redirects and retries are off by default: the session cookie must never
+  # follow a cross-host redirect, and a 429 must not trigger hidden follow-up
+  # requests. Both can be re-enabled per client via :req_options. The endpoint
+  # URL and method merge last so configuration can never redirect a request
+  # (and its session cookie) to another host.
   @spec get(Client.t(), String.t(), keyword()) :: {:ok, response()} | {:error, Error.t()}
   def get(%Client{} = client, url, options) when is_binary(url) and is_list(options) do
     request =
-      client.req_options
-      |> Keyword.put(:url, url)
-      |> Keyword.put(:method, :get)
+      [redirect: false, retry: false]
       |> Req.new()
+      |> CloakedReq.attach()
+      |> Req.merge(client.req_options)
       |> Req.merge(options)
+      |> Req.merge(url: url, method: :get)
 
     with {:ok, %Req.Response{status: status, body: body}} <-
-           request |> CloakedReq.attach() |> Req.request() |> normalize_request_error() do
+           request |> Req.request() |> normalize_request_error() do
       handle_status(status, body)
     end
   end
@@ -24,6 +30,15 @@ defmodule Kagi.HTTP do
   @spec normalize_request_error({:ok, Req.Response.t()} | {:error, Exception.t()}) ::
           {:ok, Req.Response.t()} | {:error, Error.t()}
   defp normalize_request_error({:ok, %Req.Response{} = response}), do: {:ok, response}
+
+  defp normalize_request_error(
+         {:error,
+          %CloakedReq.AdapterError{error: %CloakedReq.Error{details: %{"reason" => reason}}} =
+            exception}
+       )
+       when is_binary(reason) do
+    {:error, Error.new(:request_failed, "#{Exception.message(exception)} (#{reason})")}
+  end
 
   defp normalize_request_error({:error, exception}) do
     {:error, Error.new(:request_failed, Exception.message(exception))}

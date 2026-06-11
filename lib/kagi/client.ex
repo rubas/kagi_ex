@@ -8,7 +8,11 @@ defmodule Kagi.Client do
   ## Fields
 
     * `:session_token` - Kagi session token string.
-    * `:req_options` - keyword list merged into each `Req` request.
+    * `:req_options` - keyword list merged into each `Req` request. Accepts
+      `Req` options and `CloakedReq` adapter options such as `:impersonate`.
+
+  Requests follow no redirects and retry nothing by default; re-enable either
+  with `redirect: true` or `retry: :safe_transient` in `:req_options`.
   """
 
   alias Kagi.Error

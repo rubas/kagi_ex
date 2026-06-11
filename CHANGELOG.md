@@ -13,12 +13,23 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
   Kagi ranks near the top.
 - Search queries that are not strings or lists of strings (charlists, keyword
   lists) return `:invalid_option` instead of being mangled or raising.
+- `CloakedReq` adapter options (`:impersonate`, `:cookie_jar`, ...) passed via
+  `:req_options` no longer raise `ArgumentError`; the adapter is attached
+  before the configured options are merged.
 
 ### Changed
 
 - Challenge detection runs only when a page has no recognizable results and no
   longer downcases the whole HTML body on the happy path.
-
+- Requests no longer follow redirects, so the session cookie cannot travel to
+  another host. Re-enable with `redirect: true` in `:req_options`. The
+  endpoint URL and method are pinned after configuration merging, so
+  `:req_options` can never point a request at another host.
+- Requests no longer retry transient HTTP errors behind the caller's back; a
+  429 returns `:rate_limited` after a single attempt. Re-enable with
+  `retry: :safe_transient` in `:req_options`.
+- Transport failures now include the adapter's failure reason (timeout, DNS,
+  TLS, ...) in the `:request_failed` error message.
 ## [0.1.1] - 23.05.2026
 
 ### Changed

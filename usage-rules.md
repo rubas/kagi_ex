@@ -29,13 +29,18 @@ Missing tokens return `{:error, %Kagi.Error{reason: :missing_session_token}}`.
 ## Transport
 
 Requests always use `CloakedReq`. Configure `:req_options` via application
-config when you need to override the default `Req` request options.
+config when you need to override the default `Req` request options or set
+`CloakedReq` adapter options such as `:impersonate`.
 
 ```elixir
 config :kagi_ex,
   session_token: System.fetch_env!("KAGI_SESSION_TOKEN"),
-  req_options: [receive_timeout: 30_000]
+  req_options: [receive_timeout: 30_000, impersonate: :chrome_136]
 ```
+
+Redirects and retries are disabled by default: one call maps to one HTTP
+request. Re-enable them with `redirect: true` or `retry: :safe_transient` in
+`:req_options`.
 
 ## Returned Types
 
