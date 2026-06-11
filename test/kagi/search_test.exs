@@ -78,7 +78,7 @@ defmodule Kagi.SearchTest do
   test "rejects queries that are not strings or lists of strings" do
     client = %Kagi.Client{session_token: "token"}
 
-    for query <- [~c"elixir", [limit: 5], ["elixir", :req], 42] do
+    for query <- [~c"elixir", [limit: 5], ["elixir", :req], ["elixir" | "req"], 42] do
       assert {:error, %Error{reason: :invalid_option, message: message}} =
                Kagi.search(client, query)
 
