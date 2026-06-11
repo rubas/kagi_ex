@@ -11,6 +11,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - `:timeout` option for `Kagi.summarize/1..3`, the total request timeout in
   milliseconds. Precedence: per-call `:timeout`, then the client's
   `req_options[:receive_timeout]`, then the summarizer default of 60 seconds.
+- `req` 0.6 support: the requirement is now `~> 0.5 or ~> 0.6`, and
+  `cloaked_req` 0.4.2 carries the matching adapter support.
 - `:invalid_session_token` error reason: tokens with characters that cannot
   appear in a cookie value (a pasted `Cookie` header, for example) are rejected
   before any request instead of being sent raw.

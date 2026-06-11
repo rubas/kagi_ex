@@ -72,9 +72,9 @@ defmodule KagiEx.MixProject do
   @spec deps() :: [tuple()]
   defp deps do
     [
-      {:req, "~> 0.5"},
+      {:req, "~> 0.5 or ~> 0.6"},
       {:lazy_html, "~> 0.1"},
-      {:cloaked_req, "~> 0.4.0"},
+      {:cloaked_req, "~> 0.4.2"},
       {:credo, "~> 1.7.18", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
       {:ex_dna, "~> 1.5", only: [:dev, :test], runtime: false},
