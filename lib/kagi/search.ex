@@ -30,6 +30,7 @@ defmodule Kagi.Search do
   defstruct results: [], related: []
 
   @url "https://kagi.com/html/search"
+  @result_selector ".search-result, .sr-group .__srgi"
 
   @doc false
   @spec request(Client.t(), String.t() | [String.t()], keyword()) ::
@@ -54,10 +55,8 @@ defmodule Kagi.Search do
     with :ok <- detect_challenge(document, html) do
       results =
         document
-        |> parse_standard_results(limit)
-        |> then(fn results ->
-          results ++ parse_grouped_results(document, max(limit - length(results), 0))
-        end)
+        |> LazyHTML.query(@result_selector)
+        |> Stream.flat_map(&parse_result/1)
         |> Enum.take(limit)
 
       {:ok, %__MODULE__{results: results, related: parse_related(document)}}
@@ -139,20 +138,40 @@ defmodule Kagi.Search do
   @spec build_query(String.t() | [String.t()], keyword()) ::
           {:ok, String.t()} | {:error, Error.t()}
   defp build_query(query, options) do
-    query =
-      query
-      |> List.wrap()
-      |> Enum.map_join(" ", &to_string/1)
-      |> String.trim()
+    case normalize_query(query) do
+      {:ok, ""} ->
+        {:error, Error.new(:invalid_option, "query must not be empty")}
 
-    if query == "" do
-      {:error, Error.new(:invalid_option, "query must not be empty")}
-    else
-      query
-      |> append_filter("site", options[:site])
-      |> append_filter("filetype", options[:filetype])
-      |> then(&{:ok, &1})
+      {:ok, query} ->
+        query
+        |> append_filter("site", options[:site])
+        |> append_filter("filetype", options[:filetype])
+        |> then(&{:ok, &1})
+
+      {:error, %Error{} = error} ->
+        {:error, error}
     end
+  end
+
+  @spec normalize_query(term()) :: {:ok, String.t()} | {:error, Error.t()}
+  defp normalize_query(query) when is_binary(query), do: {:ok, String.trim(query)}
+
+  defp normalize_query(query) when is_list(query) do
+    if Enum.all?(query, &is_binary/1) do
+      {:ok, query |> Enum.join(" ") |> String.trim()}
+    else
+      {:error, invalid_query_error(query)}
+    end
+  end
+
+  defp normalize_query(query), do: {:error, invalid_query_error(query)}
+
+  @spec invalid_query_error(term()) :: Error.t()
+  defp invalid_query_error(query) do
+    Error.new(
+      :invalid_option,
+      "query must be a string or a list of strings, got: #{inspect(query)}"
+    )
   end
 
   @spec append_filter(String.t(), String.t(), String.t() | nil) :: String.t()
@@ -208,23 +227,13 @@ defmodule Kagi.Search do
 
   @spec detect_challenge(LazyHTML.t(), String.t()) :: :ok | {:error, Error.t()}
   defp detect_challenge(document, html) do
-    results = LazyHTML.query(document, "#search-app, .search-result, .sr-group .__srgi")
-    has_results? = not Enum.empty?(results)
-
-    challenge? =
-      html
-      |> String.downcase()
-      |> then(fn lower ->
-        String.contains?(lower, "cf-challenge") or String.contains?(lower, "captcha") or
-          String.contains?(lower, "challenge-platform") or
-          String.contains?(lower, "just a moment")
-      end)
+    results = LazyHTML.query(document, "#search-app, #{@result_selector}")
 
     cond do
-      has_results? ->
+      not Enum.empty?(results) ->
         :ok
 
-      challenge? ->
+      challenge?(html) ->
         {:error, Error.new(:blocked, "Blocked by CAPTCHA/challenge")}
 
       true ->
@@ -232,27 +241,16 @@ defmodule Kagi.Search do
     end
   end
 
-  @spec parse_standard_results(LazyHTML.t(), non_neg_integer()) :: [SearchResult.t()]
-  defp parse_standard_results(document, limit) do
-    document
-    |> LazyHTML.query(".search-result")
-    |> Enum.flat_map(&parse_result(&1, ".__sri_title_link"))
-    |> Enum.take(limit)
+  @spec challenge?(String.t()) :: boolean()
+  defp challenge?(html) do
+    html
+    |> String.downcase(:ascii)
+    |> String.contains?(["cf-challenge", "captcha", "challenge-platform", "just a moment"])
   end
 
-  @spec parse_grouped_results(LazyHTML.t(), non_neg_integer()) :: [SearchResult.t()]
-  defp parse_grouped_results(_document, 0), do: []
-
-  defp parse_grouped_results(document, limit) do
-    document
-    |> LazyHTML.query(".sr-group .__srgi")
-    |> Enum.flat_map(&parse_result(&1, ".__srgi-title a"))
-    |> Enum.take(limit)
-  end
-
-  @spec parse_result(LazyHTML.t(), String.t()) :: [SearchResult.t()]
-  defp parse_result(element, link_selector) do
-    with link when link != nil <- element |> LazyHTML.query(link_selector) |> Enum.at(0),
+  @spec parse_result(LazyHTML.t()) :: [SearchResult.t()]
+  defp parse_result(element) do
+    with link when link != nil <- element |> LazyHTML.query(link_selector(element)) |> Enum.at(0),
          [url | _] <- LazyHTML.attribute(link, "href") do
       [
         %SearchResult{
@@ -264,6 +262,18 @@ defmodule Kagi.Search do
     else
       _value -> []
     end
+  end
+
+  @spec link_selector(LazyHTML.t()) :: String.t()
+  defp link_selector(element) do
+    if grouped_result?(element), do: ".__srgi-title a", else: ".__sri_title_link"
+  end
+
+  @spec grouped_result?(LazyHTML.t()) :: boolean()
+  defp grouped_result?(element) do
+    element
+    |> LazyHTML.attribute("class")
+    |> Enum.any?(fn class -> "__srgi" in String.split(class) end)
   end
 
   @spec parse_related(LazyHTML.t()) :: [String.t()]
