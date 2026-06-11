@@ -35,6 +35,7 @@ defmodule Kagi.Maps do
   def request(%Client{} = client, query, options) when is_list(options) do
     with {:ok, query} <- build_query(query),
          {:ok, params} <- query_params(query, options),
+         {:ok, limit} <- limit(options),
          {:ok, %{body: body}} <-
            HTTP.get(client, @url,
              params: params,
@@ -44,8 +45,7 @@ defmodule Kagi.Maps do
              ]
            ),
          {:ok, json} <- normalize_body(body),
-         {:ok, pois} <- extract_pois(json),
-         {:ok, limit} <- limit(options) do
+         {:ok, pois} <- extract_pois(json) do
       results =
         pois
         |> Enum.map(&parse_poi/1)
@@ -67,17 +67,38 @@ defmodule Kagi.Maps do
 
   @spec build_query(String.t() | [String.t()]) :: {:ok, String.t()} | {:error, Error.t()}
   defp build_query(query) do
-    query =
-      query
-      |> List.wrap()
-      |> Enum.map_join(" ", &to_string/1)
-      |> String.trim()
-
-    if query == "" do
-      {:error, Error.new(:invalid_option, "query must not be empty")}
-    else
-      {:ok, query}
+    case normalize_query(query) do
+      {:ok, ""} -> {:error, Error.new(:invalid_option, "query must not be empty")}
+      {:ok, query} -> {:ok, query}
+      {:error, %Error{} = error} -> {:error, error}
     end
+  end
+
+  @spec normalize_query(term()) :: {:ok, String.t()} | {:error, Error.t()}
+  defp normalize_query(query) when is_binary(query), do: {:ok, String.trim(query)}
+
+  defp normalize_query(query) when is_list(query) do
+    if string_list?(query) do
+      {:ok, query |> Enum.join(" ") |> String.trim()}
+    else
+      {:error, invalid_query_error(query)}
+    end
+  end
+
+  defp normalize_query(query), do: {:error, invalid_query_error(query)}
+
+  # Enum.all?/2 raises on improper lists; this stays an error tuple.
+  @spec string_list?(term()) :: boolean()
+  defp string_list?([]), do: true
+  defp string_list?([head | tail]) when is_binary(head), do: string_list?(tail)
+  defp string_list?(_other), do: false
+
+  @spec invalid_query_error(term()) :: Error.t()
+  defp invalid_query_error(query) do
+    Error.new(
+      :invalid_option,
+      "query must be a string or a list of strings, got: #{inspect(query)}"
+    )
   end
 
   @spec query_params(String.t(), keyword()) :: {:ok, keyword()} | {:error, Error.t()}
@@ -253,7 +274,10 @@ defmodule Kagi.Maps do
 
       {:ok, value} ->
         {:error,
-         Error.new(:parse_error, "maps response must be a JSON object, got: #{inspect(value)}")}
+         Error.new(
+           :parse_error,
+           "maps response must be a JSON object, got: #{inspect_bounded(value)}"
+         )}
 
       {:error, reason} ->
         {:error, Error.new(:parse_error, "failed to decode maps JSON: #{inspect(reason)}")}
@@ -262,14 +286,35 @@ defmodule Kagi.Maps do
 
   defp normalize_body(body) do
     {:error,
-     Error.new(:parse_error, "expected maps response body to be JSON, got: #{inspect(body)}")}
+     Error.new(
+       :parse_error,
+       "expected maps response body to be JSON, got: #{inspect_bounded(body)}"
+     )}
   end
 
+  @spec inspect_bounded(term()) :: String.t()
+  defp inspect_bounded(value), do: inspect(value, limit: 10, printable_limit: 200)
+
   @spec extract_pois(map()) :: {:ok, [map()]} | {:error, Error.t()}
-  defp extract_pois(%{"pois" => pois}) when is_list(pois), do: {:ok, pois}
+  defp extract_pois(%{"pois" => pois}) when is_list(pois) do
+    if Enum.all?(pois, &is_map/1) do
+      {:ok, pois}
+    else
+      {:error, Error.new(:parse_error, "maps 'pois' array contains entries that are not objects")}
+    end
+  end
+
+  defp extract_pois(%{"pois" => pois}) do
+    {:error,
+     Error.new(:parse_error, "maps 'pois' must be an array, got: #{inspect_bounded(pois)}")}
+  end
 
   defp extract_pois(json) do
-    {:error, Error.new(:parse_error, "maps response missing 'pois' array: #{inspect(json)}")}
+    {:error,
+     Error.new(
+       :parse_error,
+       "maps response missing 'pois' array; top-level keys: #{inspect_bounded(Map.keys(json))}"
+     )}
   end
 
   @spec parse_poi(map()) :: MapsResult.t()
@@ -282,16 +327,31 @@ defmodule Kagi.Maps do
       url: Map.get(poi, "url"),
       source: Map.get(poi, "source"),
       id: Map.get(poi, "id_k") || Map.get(poi, "id"),
-      rating: Map.get(poi, "rating"),
-      review_count: Map.get(poi, "reviewCount"),
-      price: Map.get(poi, "price"),
-      distance: Map.get(poi, "distance"),
-      hours_now: Map.get(poi, "hours_now"),
+      rating: float_or_nil(Map.get(poi, "rating")),
+      review_count: count_or_nil(Map.get(poi, "reviewCount")),
+      price: string_or_nil(Map.get(poi, "price")),
+      distance: float_or_nil(Map.get(poi, "distance")),
+      hours_now: string_or_nil(Map.get(poi, "hours_now")),
       types: Map.get(poi, "types"),
       links: Map.get(poi, "links"),
       images: Map.get(poi, "images")
     }
   end
+
+  # Kagi Maps providers drift on scalar types; values that do not match the
+  # %MapsResult{} typespec degrade to nil instead of crashing sorts.
+  @spec string_or_nil(term()) :: String.t() | nil
+  defp string_or_nil(value) when is_binary(value), do: value
+  defp string_or_nil(_value), do: nil
+
+  @spec float_or_nil(term()) :: float() | nil
+  defp float_or_nil(value) when is_float(value), do: value
+  defp float_or_nil(value) when is_integer(value), do: value * 1.0
+  defp float_or_nil(_value), do: nil
+
+  @spec count_or_nil(term()) :: non_neg_integer() | nil
+  defp count_or_nil(value) when is_integer(value) and value >= 0, do: value
+  defp count_or_nil(_value), do: nil
 
   @spec parse_coordinates(term()) :: Coordinates.t() | nil
   defp parse_coordinates(%{"latitude" => lat, "longitude" => lon}) do

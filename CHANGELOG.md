@@ -19,7 +19,6 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 - `inspect(%Kagi.Client{})` no longer prints the session token; the field is
   redacted from the derived `Inspect` implementation.
-
 - Search results keep Kagi's ranking: grouped and standard rows are parsed in
   one document-order pass, so `:limit` no longer drops grouped results that
   Kagi ranks near the top.
@@ -28,6 +27,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - `CloakedReq` adapter options (`:impersonate`, `:cookie_jar`, ...) passed via
   `:req_options` no longer raise `ArgumentError`; the adapter is attached
   before the configured options are merged.
+- Maps results with drifting scalar types (numeric `price`, string `rating`,
+  ...) normalize to `nil` instead of crashing `sort: :price` with a
+  `FunctionClauseError`; integer ratings and distances convert to floats.
+- Maps `:limit` is validated before the HTTP request, matching search, so an
+  invalid value no longer burns an authenticated request.
+- A `pois` value that is not an array of objects returns a descriptive
+  `:parse_error` instead of raising.
+- Maps and search parse errors no longer embed whole response payloads in the
+  error message; inspected values are bounded.
+- Maps queries that are not strings or lists of strings (charlists, keyword
+  lists) return `:invalid_option` instead of being mangled or raising.
 
 ### Changed
 
