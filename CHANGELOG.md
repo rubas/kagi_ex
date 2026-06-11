@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 
+### Added
+
+- `:timeout` option for `Kagi.summarize/1..3`, the total request timeout in
+  milliseconds. Precedence: per-call `:timeout`, then the client's
+  `req_options[:receive_timeout]`, then the summarizer default of 60 seconds.
+
 ### Fixed
 
 - Search results keep Kagi's ranking: grouped and standard rows are parsed in
@@ -30,6 +36,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
   `retry: :safe_transient` in `:req_options`.
 - Transport failures now include the adapter's failure reason (timeout, DNS,
   TLS, ...) in the `:request_failed` error message.
+- Summarizer requests default to a 60-second timeout instead of inheriting the
+  adapter's 15-second total request timeout, which failed long summaries.
+- Summarizer-reported failures (`"state": "error"` payloads and empty
+  summaries) return the new `:summarizer_error` reason instead of
+  `:parse_error`, so callers can tell an unfetchable URL from a client parsing
+  bug. Code matching on `:parse_error` for these cases must be updated.
+
 ## [0.1.1] - 23.05.2026
 
 ### Changed

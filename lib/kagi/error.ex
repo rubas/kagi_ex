@@ -18,6 +18,8 @@ defmodule Kagi.Error do
     * `:http_error` - Kagi returned an unexpected non-2xx status.
     * `:blocked` - Kagi returned a CAPTCHA or challenge page.
     * `:parse_error` - a response could not be parsed.
+    * `:summarizer_error` - the summarizer reported it could not fetch or
+      summarize the URL, or returned an empty summary.
   """
 
   @typedoc "Stable, machine-readable reason returned in `%Kagi.Error{}`."
@@ -30,6 +32,7 @@ defmodule Kagi.Error do
           | :http_error
           | :blocked
           | :parse_error
+          | :summarizer_error
 
   @typedoc "A `Kagi.Error` value."
   @type t :: %__MODULE__{reason: reason(), message: String.t()}

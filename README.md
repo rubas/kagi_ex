@@ -69,6 +69,8 @@ in via `:req_options` with `redirect: true` or `retry: :safe_transient`.
 
 - `:type` - `:summary` or `:takeaway`
 - `:lang` - target language code, default `"EN"`
+- `:timeout` - total request timeout in milliseconds; defaults to
+  `req_options[:receive_timeout]` when set, otherwise 60 seconds
 
 ## Maps
 

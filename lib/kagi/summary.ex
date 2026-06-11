@@ -23,13 +23,19 @@ defmodule Kagi.Summary do
 
   @url "https://kagi.com/mother/summary_labs"
 
+  # The summarizer generates the summary synchronously, so long pages need far
+  # more than the adapter's 15s default total request timeout.
+  @default_receive_timeout 60_000
+
   @doc false
   @spec request(Client.t(), String.t(), keyword()) :: {:ok, t()} | {:error, Error.t()}
   def request(%Client{} = client, url, options) when is_binary(url) and is_list(options) do
     with {:ok, params} <- query_params(url, options),
+         {:ok, timeout} <- receive_timeout(client, options),
          {:ok, %{body: body}} <-
            HTTP.get(client, @url,
              params: params,
+             receive_timeout: timeout,
              headers: [
                {"accept", "application/vnd.kagi.stream"},
                {"cookie", "kagi_session=#{client.session_token}"},
@@ -38,6 +44,27 @@ defmodule Kagi.Summary do
            ),
          {:ok, body} <- normalize_body(body) do
       parse_stream(body)
+    end
+  end
+
+  @spec receive_timeout(Client.t(), keyword()) :: {:ok, pos_integer()} | {:error, Error.t()}
+  defp receive_timeout(%Client{} = client, options) do
+    case Keyword.fetch(options, :timeout) do
+      {:ok, timeout} when is_integer(timeout) and timeout > 0 ->
+        {:ok, timeout}
+
+      {:ok, value} ->
+        {:error,
+         Error.new(
+           :invalid_option,
+           ":timeout must be a positive integer in milliseconds, got: #{inspect(value)}"
+         )}
+
+      :error ->
+        case Keyword.get(client.req_options, :receive_timeout) do
+          timeout when is_integer(timeout) and timeout > 0 -> {:ok, timeout}
+          _other -> {:ok, @default_receive_timeout}
+        end
     end
   end
 
@@ -126,25 +153,36 @@ defmodule Kagi.Summary do
 
   @spec detect_summary_error(map()) :: :ok | {:error, Error.t()}
   defp detect_summary_error(%{"state" => "error"} = json) do
-    {:error,
-     Error.new(:parse_error, "Summarizer error: #{Map.get(json, "reply", "Unknown error")}")}
+    reply = Map.get(json, "reply") || "Unknown error"
+    {:error, Error.new(:summarizer_error, "Summarizer error: #{reply}")}
   end
 
   defp detect_summary_error(_json), do: :ok
 
   @spec extract_markdown(map()) :: {:ok, String.t()} | {:error, Error.t()}
   defp extract_markdown(json) do
-    markdown = json["md"] || get_in(json, ["output_data", "markdown"])
+    markdown = preferred_markdown(json["md"], get_in(json, ["output_data", "markdown"]))
 
     cond do
       not is_binary(markdown) ->
         {:error, Error.new(:parse_error, "Missing markdown in response")}
 
       markdown == "" ->
-        {:error, Error.new(:parse_error, "Empty summary returned")}
+        {:error, Error.new(:summarizer_error, "Empty summary returned")}
 
       true ->
         {:ok, markdown}
+    end
+  end
+
+  # "md" wins only when it carries content; an empty string falls back to
+  # output_data.markdown while keeping the empty-vs-missing distinction.
+  @spec preferred_markdown(term(), term()) :: term()
+  defp preferred_markdown(md, fallback) do
+    cond do
+      is_binary(md) and md != "" -> md
+      is_binary(fallback) and fallback != "" -> fallback
+      true -> md || fallback
     end
   end
 end
