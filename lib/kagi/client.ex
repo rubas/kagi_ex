@@ -5,6 +5,10 @@ defmodule Kagi.Client do
   A client stores the configured session token and request options. Building a
   client performs no network I/O.
 
+  The session token is redacted from `inspect/1` output so crash reports and
+  logs do not leak it. `Map.from_struct/1` and `inspect(client, structs: false)`
+  still expose the raw value.
+
   ## Fields
 
     * `:session_token` - Kagi session token string.
@@ -23,6 +27,7 @@ defmodule Kagi.Client do
           req_options: keyword()
         }
 
+  @derive {Inspect, except: [:session_token]}
   defstruct [:session_token, req_options: []]
 
   @doc """

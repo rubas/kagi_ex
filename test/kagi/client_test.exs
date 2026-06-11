@@ -58,4 +58,21 @@ defmodule Kagi.ClientTest do
       assert message =~ "missing session token"
     end
   end
+
+  test "rejects tokens that are not valid cookie values" do
+    for invalid <- ["abc;def", "kagi_session=abc; theme=dark", "abc def", "abc\"def", "abc\\def"] do
+      Application.put_env(:kagi_ex, :session_token, invalid)
+
+      assert {:error, %Error{reason: :invalid_session_token, message: message}} = Kagi.new()
+      assert message =~ "kagi_session value"
+    end
+  end
+
+  test "redacts the session token from inspect output" do
+    Application.put_env(:kagi_ex, :session_token, "secret-token-value")
+
+    assert {:ok, client} = Kagi.new()
+    refute inspect(client) =~ "secret-token-value"
+    assert inspect(client) =~ "req_options"
+  end
 end

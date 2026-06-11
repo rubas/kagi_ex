@@ -11,6 +11,8 @@ defmodule Kagi.Error do
   ## Reasons
 
     * `:missing_session_token` - no valid session token is configured.
+    * `:invalid_session_token` - the configured session token is not a valid
+      cookie value.
     * `:invalid_option` - an option failed client-side validation.
     * `:request_failed` - the HTTP request failed before receiving a response.
     * `:unauthorized` - Kagi returned HTTP 401 or 403.
@@ -25,6 +27,7 @@ defmodule Kagi.Error do
   @typedoc "Stable, machine-readable reason returned in `%Kagi.Error{}`."
   @type reason ::
           :missing_session_token
+          | :invalid_session_token
           | :invalid_option
           | :request_failed
           | :unauthorized
