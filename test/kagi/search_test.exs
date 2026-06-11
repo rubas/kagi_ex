@@ -23,14 +23,33 @@ defmodule Kagi.SearchTest do
     assert output.related == ["related term one", "related term two"]
   end
 
-  test "parses grouped results fixture" do
+  test "keeps interleaved standard and grouped results in document order" do
     html = File.read!("test/fixtures/search/grouped.html")
 
     assert {:ok, output} = Search.parse(html, 10)
-    assert length(output.results) == 2
+
+    assert Enum.map(output.results, & &1.url) == [
+             "https://grouped.com/1",
+             "https://standard.com/1",
+             "https://grouped.com/2",
+             "https://grouped.com/3",
+             "https://standard.com/2"
+           ]
+
     assert hd(output.results).title == "Grouped One"
-    assert hd(output.results).url == "https://grouped.com/1"
     assert hd(output.results).snippet == "Grouped description one."
+  end
+
+  test "applies :limit across result kinds without dropping higher-ranked rows" do
+    html = File.read!("test/fixtures/search/grouped.html")
+
+    assert {:ok, output} = Search.parse(html, 3)
+
+    assert Enum.map(output.results, & &1.url) == [
+             "https://grouped.com/1",
+             "https://standard.com/1",
+             "https://grouped.com/2"
+           ]
   end
 
   test "detects CAPTCHA fixture" do
@@ -54,5 +73,16 @@ defmodule Kagi.SearchTest do
              Kagi.search(client, "rust", time: :week, from: "2026-03-01")
 
     assert message =~ ":time"
+  end
+
+  test "rejects queries that are not strings or lists of strings" do
+    client = %Kagi.Client{session_token: "token"}
+
+    for query <- [~c"elixir", [limit: 5], ["elixir", :req], 42] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.search(client, query)
+
+      assert message =~ "query must be a string or a list of strings"
+    end
   end
 end

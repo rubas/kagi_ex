@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [Unreleased]
+
+### Fixed
+
+- Search results keep Kagi's ranking: grouped and standard rows are parsed in
+  one document-order pass, so `:limit` no longer drops grouped results that
+  Kagi ranks near the top.
+- Search queries that are not strings or lists of strings (charlists, keyword
+  lists) return `:invalid_option` instead of being mangled or raising.
+
+### Changed
+
+- Challenge detection runs only when a page has no recognizable results and no
+  longer downcases the whole HTML body on the happy path.
+
 ## [0.1.1] - 23.05.2026
 
 ### Changed
