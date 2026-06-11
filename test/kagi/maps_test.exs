@@ -85,6 +85,98 @@ defmodule Kagi.MapsTest do
     assert message =~ "query"
   end
 
+  test "rejects queries that are not strings or lists of strings" do
+    client = %Kagi.Client{session_token: "token"}
+
+    for query <- [~c"coffee", [limit: 5], ["coffee", :zurich], ["coffee" | "zurich"]] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.maps(client, query)
+
+      assert message =~ "query must be a string or a list of strings"
+    end
+  end
+
+  test "rejects invalid :limit before any network call" do
+    test_pid = self()
+
+    adapter = fn request ->
+      send(test_pid, :network)
+      {request, Req.Response.new(status: 200, body: %{"pois" => []})}
+    end
+
+    client = %Kagi.Client{session_token: "token", req_options: [adapter: adapter]}
+
+    assert {:error, %Error{reason: :invalid_option, message: message}} =
+             Kagi.maps(client, "coffee", limit: "5")
+
+    assert message =~ ":limit"
+    refute_received :network
+  end
+
+  test "rejects pois arrays with entries that are not objects" do
+    assert {:error, %Error{reason: :parse_error, message: message}} =
+             Maps.parse(%{"pois" => [%{"name" => "ok"}, nil]}, 10)
+
+    assert message =~ "not objects"
+  end
+
+  test "reports missing pois with top-level keys only" do
+    assert {:error, %Error{reason: :parse_error, message: message}} =
+             Maps.parse(%{"places" => [], "status" => "ok"}, 10)
+
+    assert message =~ ~s(top-level keys: ["places", "status"])
+  end
+
+  test "reports a pois value that is not an array as a type error" do
+    assert {:error, %Error{reason: :parse_error, message: message}} =
+             Maps.parse(%{"pois" => %{}}, 10)
+
+    assert message =~ "'pois' must be an array"
+  end
+
+  test "normalizes drift-prone scalars to nil instead of crashing sorts" do
+    json = %{
+      "pois" => [
+        %{
+          "name" => "drifted",
+          "price" => 2,
+          "rating" => "4.7",
+          "reviewCount" => "12",
+          "distance" => "near",
+          "hours_now" => 1
+        },
+        %{
+          "name" => "typed",
+          "price" => "$$",
+          "rating" => 4.1,
+          "reviewCount" => 3,
+          "distance" => 1.2,
+          "hours_now" => "Open"
+        },
+        %{"name" => "integer rating", "rating" => 4, "distance" => 2}
+      ]
+    }
+
+    assert {:ok, output} = Maps.parse(json, 10)
+    assert [drifted, typed, integer_rating] = output.results
+
+    assert %MapsResult{price: nil, rating: nil, review_count: nil, distance: nil, hours_now: nil} =
+             drifted
+
+    assert %MapsResult{
+             price: "$$",
+             rating: 4.1,
+             review_count: 3,
+             distance: 1.2,
+             hours_now: "Open"
+           } = typed
+
+    assert %MapsResult{rating: 4.0, distance: 2.0} = integer_rating
+
+    sorted = Maps.sort_results(output.results, :price, nil)
+    assert Enum.map(sorted, & &1.name) == ["typed", "drifted", "integer rating"]
+  end
+
   test "sorts by rating desc by default and pushes missing ratings last" do
     results = [
       %MapsResult{name: "low", rating: 2.0},

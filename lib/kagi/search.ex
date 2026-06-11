@@ -70,7 +70,7 @@ defmodule Kagi.Search do
     {:error,
      Error.new(
        :parse_error,
-       "expected search response body to be a string, got: #{inspect(body)}"
+       "expected search response body to be a string, got: #{inspect(body, limit: 10, printable_limit: 200)}"
      )}
   end
 
