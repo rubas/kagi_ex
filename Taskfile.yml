@@ -65,17 +65,12 @@ tasks:
     cmds:
       - MIX_ENV=test mix deps.audit
 
-  sync:rules:
-    cmds:
-      - mix usage_rules.sync --yes
-
   upgrade:
     desc: Upgrade all dependencies
     cmds:
       - mix deps.update --all
       - mix deps.get
       - mix deps.compile
-      - task: sync:rules
       - mix hex.outdated
 
   check:

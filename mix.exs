@@ -13,8 +13,7 @@ defmodule KagiEx.MixProject do
       description: description(),
       package: package(),
       docs: docs(),
-      deps: deps(),
-      usage_rules: usage_rules()
+      deps: deps()
     ]
   end
 
@@ -29,7 +28,7 @@ defmodule KagiEx.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "CHANGELOG.md", "usage-rules.md", "RELEASE.md"],
+      extras: ["README.md", "CHANGELOG.md", "RELEASE.md"],
       source_url: "https://github.com/rubas/kagi_ex",
       source_ref: "v#{@version}",
       homepage_url: "https://github.com/rubas/kagi_ex",
@@ -55,17 +54,7 @@ defmodule KagiEx.MixProject do
         "HexDocs" => "https://hexdocs.pm/kagi_ex",
         "Kagi" => "https://kagi.com"
       },
-      files: ~w(lib mix.exs README.md CHANGELOG.md RELEASE.md usage-rules.md LICENSE*)
-    ]
-  end
-
-  @spec usage_rules() :: keyword()
-  defp usage_rules do
-    [
-      file: "AGENTS.md",
-      usage_rules: [
-        {~r/.*/, link: :markdown}
-      ]
+      files: ~w(lib mix.exs README.md CHANGELOG.md RELEASE.md LICENSE*)
     ]
   end
 
@@ -81,8 +70,7 @@ defmodule KagiEx.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.11", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.38", only: :dev, runtime: false},
-      {:usage_rules, "~> 1.2.4", only: [:dev], runtime: false}
+      {:ex_doc, "~> 0.38", only: :dev, runtime: false}
     ]
   end
 end
