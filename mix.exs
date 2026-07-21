@@ -74,7 +74,7 @@ defmodule KagiEx.MixProject do
     [
       {:req, "~> 0.5 or ~> 0.6"},
       {:lazy_html, "~> 0.1"},
-      {:cloaked_req, "~> 0.4.2"},
+      {:cloaked_req, "~> 0.5.1"},
       {:credo, "~> 1.7.18", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
       {:ex_dna, "~> 1.5", only: [:dev, :test], runtime: false},
