@@ -45,6 +45,19 @@ Tokens with characters that cannot appear in a cookie value (a pasted
 Enum.map(results.results, & &1.url)
 ```
 
+Every call reads the application config and builds a client. Build one with
+`Kagi.new!/0` and pass it as the first argument to reuse it:
+
+```elixir
+client = Kagi.new!()
+
+{:ok, results} = Kagi.search(client, "elixir req http client", limit: 5)
+{:ok, summary} = Kagi.summarize(client, "https://elixir-lang.org")
+```
+
+Each function has a bang variant (`Kagi.search!`, `Kagi.summarize!`,
+`Kagi.maps!`) that raises `Kagi.Error` instead of returning an error tuple.
+
 ## Configuration
 
 Set `:req_options` in application config when you need to override the default
@@ -59,7 +72,7 @@ in via `:req_options` with `redirect: true` or `retry: :safe_transient`.
 
 `Kagi.search/2` and `Kagi.search/3` accept:
 
-- `:limit` - maximum result count
+- `:limit` - maximum result count (default `10`), applied client-side
 - `:region` - region code such as `"ch"`, `"us"`, `"de"`, or `"no_region"`
 - `:lens` - `:default`, `:programming`, `:forums`, `:pdfs`,
   `:non_commercial`, or `:world_news`
