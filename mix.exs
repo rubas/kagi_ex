@@ -61,7 +61,7 @@ defmodule KagiEx.MixProject do
   @spec deps() :: [tuple()]
   defp deps do
     [
-      {:req, "~> 0.5 or ~> 0.6"},
+      {:req, "~> 0.5.0 or ~> 0.6.0"},
       {:lazy_html, "~> 0.1"},
       {:cloaked_req, "~> 0.5.1"},
       {:credo, "~> 1.7.18", only: [:dev, :test], runtime: false},

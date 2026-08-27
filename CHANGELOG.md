@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [Unreleased]
+
+### Changed
+
+- The `req` requirement is now `~> 0.5.0 or ~> 0.6.0`. The old
+  `~> 0.5 or ~> 0.6` also matched `req` 0.7, where `cloaked_req` 0.5.1 sets a
+  function adapter that `req` 0.7 deprecates. Lift the cap once `cloaked_req`
+  ships a module adapter.
+- Update `ex_slop` to 0.4.4 and `styler` to 1.12.2 (dev and test only).
+
 ## [0.2.0] - 11.06.2026
 
 ### Added
