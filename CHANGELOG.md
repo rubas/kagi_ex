@@ -9,10 +9,12 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 ### Changed
 
 - The `req` requirement is now `~> 0.5.0 or ~> 0.6.0`. The old
-  `~> 0.5 or ~> 0.6` also matched `req` 0.7, where `cloaked_req` 0.5.1 sets a
-  function adapter that `req` 0.7 deprecates. Lift the cap once `cloaked_req`
-  ships a module adapter.
+  `~> 0.5 or ~> 0.6` also matched `req` 0.7. With `req` 0.7, `cloaked_req`
+  0.5.1 sets a function adapter that is obsolete. This is a temporary cap.
+  `cloaked_req` 0.6.0 has the module adapter and needs `req` 0.7. Remove the
+  cap when `cloaked_req` 0.6.0 is on Hex, and move to `req` `~> 0.7`.
 - Update `ex_slop` to 0.4.4 and `styler` to 1.12.2 (dev and test only).
+- CI now uses Elixir 1.20.3 (was 1.20.2) and OTP 29.0.5 (was 29.0.3).
 
 ## [0.2.0] - 11.06.2026
 
