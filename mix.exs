@@ -1,7 +1,7 @@
 defmodule KagiEx.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
 
   @spec project() :: keyword()
   def project do
@@ -9,6 +9,7 @@ defmodule KagiEx.MixProject do
       app: :kagi_ex,
       version: @version,
       elixir: "~> 1.19",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -23,6 +24,10 @@ defmodule KagiEx.MixProject do
       extra_applications: [:logger]
     ]
   end
+
+  @spec elixirc_paths(atom()) :: [String.t()]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
 
   @spec docs() :: keyword()
   defp docs do
@@ -61,9 +66,9 @@ defmodule KagiEx.MixProject do
   @spec deps() :: [tuple()]
   defp deps do
     [
-      {:req, "~> 0.5.0 or ~> 0.6.0"},
+      {:req, "~> 0.7"},
       {:lazy_html, "~> 0.1"},
-      {:cloaked_req, "~> 0.5.1"},
+      {:cloaked_req, "~> 0.6"},
       {:credo, "~> 1.7.18", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
       {:ex_dna, "~> 1.5", only: [:dev, :test], runtime: false},
