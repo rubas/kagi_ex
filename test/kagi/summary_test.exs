@@ -59,11 +59,12 @@ defmodule Kagi.SummaryTest do
 
   describe "request timeout" do
     defp client_capturing_timeout(test_pid, req_options) do
-      adapter = fn request ->
-        send(test_pid, {:receive_timeout, request.options[:receive_timeout]})
-        body = ~s(final:{"state":"done","md":"# Summary"})
-        {request, Req.Response.new(status: 200, body: body)}
-      end
+      adapter =
+        Kagi.FakeAdapter.put(Kagi.FakeAdapter, fn request ->
+          send(test_pid, {:receive_timeout, request.options[:receive_timeout]})
+          body = ~s(final:{"state":"done","md":"# Summary"})
+          {request, Req.Response.new(status: 200, body: body)}
+        end)
 
       %Kagi.Client{session_token: "token", req_options: [adapter: adapter] ++ req_options}
     end

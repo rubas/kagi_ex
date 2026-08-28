@@ -99,10 +99,11 @@ defmodule Kagi.MapsTest do
   test "rejects invalid :limit before any network call" do
     test_pid = self()
 
-    adapter = fn request ->
-      send(test_pid, :network)
-      {request, Req.Response.new(status: 200, body: %{"pois" => []})}
-    end
+    adapter =
+      Kagi.FakeAdapter.put(Kagi.FakeAdapter, fn request ->
+        send(test_pid, :network)
+        {request, Req.Response.new(status: 200, body: %{"pois" => []})}
+      end)
 
     client = %Kagi.Client{session_token: "token", req_options: [adapter: adapter]}
 

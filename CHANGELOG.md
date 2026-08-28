@@ -4,15 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
-## [Unreleased]
+## [0.3.0] - 28.08.2026
 
 ### Changed
 
-- The `req` requirement is now `~> 0.5.0 or ~> 0.6.0`. The old
-  `~> 0.5 or ~> 0.6` also matched `req` 0.7. With `req` 0.7, `cloaked_req`
-  0.5.1 sets a function adapter that is obsolete. This is a temporary cap.
-  `cloaked_req` 0.6.0 has the module adapter and needs `req` 0.7. Remove the
-  cap when `cloaked_req` 0.6.0 is on Hex, and move to `req` `~> 0.7`.
+- `req` must now be 0.7 (`~> 0.7`, was `~> 0.5 or ~> 0.6`). `cloaked_req` must
+  now be 0.6 (`~> 0.6`, was `~> 0.5.1`). `cloaked_req` 0.6.0 needs `req` 0.7,
+  and it dropped `req` 0.5 and `req` 0.6. Move your application to `req` 0.7
+  first. This is a breaking change.
+- An impersonated request now sends the profile `user-agent`. Before, it sent
+  `user-agent: req/<version>` next to the profile `sec-ch-ua`. A detector can
+  find this pair. It also now sends the profile `accept-encoding`. The fix
+  comes from `cloaked_req` 0.6.0.
+- The impersonation headers changed for each profile. The header set and the
+  header order are different. Test again each profile that you tuned against a
+  detector.
+- The `cloaked_req` cookie jar changed. A host-only cookie no longer goes to a
+  subdomain. `Max-Age` now expires a cookie. The `cookie` header now has a
+  stable order. An `http://` origin can no longer set a `Secure` cookie. This
+  applies only if you pass `:cookie_jar` through `:req_options`. `kagi_ex`
+  sends the session cookie as a header, thus its own requests do not change.
 - Update `ex_slop` to 0.4.4 and `styler` to 1.12.2 (dev and test only).
 - CI now uses Elixir 1.20.3 (was 1.20.2) and OTP 29.0.5 (was 29.0.3).
 

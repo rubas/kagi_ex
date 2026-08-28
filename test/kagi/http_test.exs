@@ -9,17 +9,20 @@ defmodule Kagi.HTTPTest do
 
   alias Kagi.Client
   alias Kagi.Error
+  alias Kagi.FakeAdapter
   alias Kagi.HTTP
 
   @url "https://kagi.com/html/search"
 
   defp client(req_options), do: %Client{session_token: "token", req_options: req_options}
 
+  defp fake(fun), do: FakeAdapter.put(FakeAdapter, fun)
+
   defp counting_adapter(test_pid, response) do
-    fn request ->
+    fake(fn request ->
       send(test_pid, {:request, request.url})
       {request, response}
-    end
+    end)
   end
 
   test "accepts CloakedReq adapter options through :req_options" do
@@ -33,10 +36,11 @@ defmodule Kagi.HTTPTest do
   test ":req_options cannot redirect requests to another host" do
     test_pid = self()
 
-    adapter = fn request ->
-      send(test_pid, {:sent, request.url, request.method})
-      {request, Req.Response.new(status: 200, body: "ok")}
-    end
+    adapter =
+      fake(fn request ->
+        send(test_pid, {:sent, request.url, request.method})
+        {request, Req.Response.new(status: 200, body: "ok")}
+      end)
 
     client = client(adapter: adapter, url: "https://attacker.example/", method: :delete)
 
@@ -46,8 +50,14 @@ defmodule Kagi.HTTPTest do
   end
 
   test "per-call options override client :req_options" do
-    adapter = fn request -> {request, Req.Response.new(status: 200, body: "client adapter")} end
-    override = fn request -> {request, Req.Response.new(status: 200, body: "call adapter")} end
+    adapter =
+      fake(fn request -> {request, Req.Response.new(status: 200, body: "client adapter")} end)
+
+    override =
+      FakeAdapter.put(FakeAdapter.Override, fn request ->
+        {request, Req.Response.new(status: 200, body: "call adapter")}
+      end)
+
     client = client(adapter: adapter)
 
     assert {:ok, %{body: "call adapter"}} = HTTP.get(client, @url, adapter: override)
@@ -92,7 +102,7 @@ defmodule Kagi.HTTPTest do
         "reason" => "connection timed out"
       })
 
-    adapter = fn request -> {request, CloakedReq.AdapterError.exception(error)} end
+    adapter = fake(fn request -> {request, CloakedReq.AdapterError.exception(error)} end)
     client = client(adapter: adapter)
 
     assert {:error, %Error{reason: :request_failed, message: message}} =
@@ -102,9 +112,10 @@ defmodule Kagi.HTTPTest do
   end
 
   test "transport failures without details still report the exception message" do
-    adapter = fn request ->
-      {request, CloakedReq.AdapterError.exception("request execution failed")}
-    end
+    adapter =
+      fake(fn request ->
+        {request, CloakedReq.AdapterError.exception("request execution failed")}
+      end)
 
     client = client(adapter: adapter)
 
