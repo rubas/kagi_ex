@@ -31,9 +31,11 @@ description: |
 
 After the version-bump PR is merged to `main`:
 
-1. `.github/workflows/release.yml` compares the current `mix.exs` version with `HEAD^`.
-2. If the version changed, the workflow ensures `vX.Y.Z` exists.
+1. `.github/workflows/release.yml` reads the `mix.exs` version on every push to `main`.
+2. If the tag `vX.Y.Z` does not exist, the workflow creates and pushes it.
 3. The same workflow publishes a GitHub release for `vX.Y.Z`.
+
+The decision uses the tag, not the parent commit. If a run is dropped or cancelled, the next push to `main` creates the missing tag and release. A tag that you delete by hand comes back on the next push.
 
 Use the workflow's manual dispatch only to re-run a release for the current version tag after fixing workflow issues.
 

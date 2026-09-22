@@ -42,10 +42,8 @@ jobs:
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             TAG="$INPUT_TAG"
             VERSION="${TAG#v}"
-            SHOULD_RELEASE=true
           else
             VERSION="$(sed -n 's/^  @version "\([^"]*\)"$/\1/p' mix.exs | head -n1)"
-            PREVIOUS_VERSION="$(git show HEAD^:mix.exs 2>/dev/null | sed -n 's/^  @version "\([^"]*\)"$/\1/p' | head -n1)"
 
             if [ -z "$VERSION" ]; then
               echo "Failed to read current mix.exs version" >&2
@@ -53,12 +51,6 @@ jobs:
             fi
 
             TAG="v$VERSION"
-
-            if [ "$VERSION" = "$PREVIOUS_VERSION" ]; then
-              SHOULD_RELEASE=false
-            else
-              SHOULD_RELEASE=true
-            fi
           fi
 
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
@@ -67,14 +59,24 @@ jobs:
             TAG_EXISTS=false
           fi
 
+          # A push releases every mix.exs version that has no tag yet, so a
+          # dropped or cancelled run is repaired by the next push.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "$TAG_EXISTS" = "false" ]; then
+            SHOULD_RELEASE=true
+          else
+            SHOULD_RELEASE=false
+          fi
+
           echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag_exists=$TAG_EXISTS" >> "$GITHUB_OUTPUT"
 
-      - name: Skip when version did not change
+      - name: Skip when the release tag exists
         if: steps.resolve.outputs.should_release != 'true'
-        run: echo "mix.exs version unchanged; release skipped"
+        env:
+          TAG: ${{ steps.resolve.outputs.tag }}
+        run: echo "$TAG already exists; release skipped"
 
   tag:
     name: Create and push release tag
