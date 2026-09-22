@@ -24,7 +24,8 @@ defmodule Kagi.Summary do
   @url "https://kagi.com/mother/summary_labs"
 
   # The summarizer generates the summary synchronously, so long pages need far
-  # more than the adapter's 15s default total request timeout.
+  # more than Req's 15s default receive timeout. After the headers, the timeout
+  # bounds each wait for the next stream chunk, not the total request.
   @default_receive_timeout 60_000
 
   @doc false

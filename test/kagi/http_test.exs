@@ -96,7 +96,7 @@ defmodule Kagi.HTTPTest do
     refute_received {:request, _url}
   end
 
-  test "transport failures keep the adapter's failure reason in the message" do
+  test "adapter failures keep the adapter's failure reason in the message" do
     error =
       CloakedReq.Error.new(:transport_error, "request execution failed", %{
         "reason" => "connection timed out"
@@ -111,15 +111,21 @@ defmodule Kagi.HTTPTest do
     assert message == "transport_error: request execution failed (connection timed out)"
   end
 
-  test "transport failures without details still report the exception message" do
-    adapter =
-      fake(fn request ->
-        {request, CloakedReq.AdapterError.exception("request execution failed")}
-      end)
-
+  test "adapter failures without a reason report the formatted adapter error" do
+    error = CloakedReq.Error.new(:invalid_request, "request execution failed")
+    adapter = fake(fn request -> {request, CloakedReq.AdapterError.exception(error)} end)
     client = client(adapter: adapter)
 
-    assert {:error, %Error{reason: :request_failed, message: "request execution failed"}} =
+    assert {:error,
+            %Error{reason: :request_failed, message: "invalid_request: request execution failed"}} =
+             HTTP.get(client, @url, [])
+  end
+
+  test "a transport timeout maps to :request_failed with the message \"timeout\"" do
+    adapter = fake(fn request -> {request, %Req.TransportError{reason: :timeout}} end)
+    client = client(adapter: adapter)
+
+    assert {:error, %Error{reason: :request_failed, message: "timeout"}} =
              HTTP.get(client, @url, [])
   end
 end

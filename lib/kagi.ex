@@ -158,9 +158,11 @@ defmodule Kagi do
 
     * `:type` - `:summary` (default) or `:takeaway`.
     * `:lang` - target language code, default `"EN"`.
-    * `:timeout` - total request timeout in milliseconds. Defaults to the
-      client's `req_options[:receive_timeout]` when set, otherwise `60_000`;
-      the summarizer generates summaries synchronously and long pages need
+    * `:timeout` - receive timeout in milliseconds. It bounds the wait for the
+      response headers, then each wait for the next body chunk. It is not a
+      total deadline: a stream that keeps sending chunks runs until it ends.
+      Defaults to the client's `req_options[:receive_timeout]` when set,
+      otherwise `60_000`; the summarizer answers slowly, so long pages need
       more than typical HTTP timeouts.
 
   Returns `{:error, %Kagi.Error{}}` for invalid options, HTTP failures,
