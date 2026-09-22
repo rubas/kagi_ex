@@ -99,7 +99,7 @@ defmodule Kagi.HTTPTest do
   test "adapter failures keep the adapter's failure reason in the message" do
     error =
       CloakedReq.Error.new(:transport_error, "request execution failed", %{
-        "reason" => "connection timed out"
+        "reason" => "dns resolution error: failed to lookup address information"
       })
 
     adapter = fake(fn request -> {request, CloakedReq.AdapterError.exception(error)} end)
@@ -108,7 +108,9 @@ defmodule Kagi.HTTPTest do
     assert {:error, %Error{reason: :request_failed, message: message}} =
              HTTP.get(client, @url, [])
 
-    assert message == "transport_error: request execution failed (connection timed out)"
+    assert message ==
+             "transport_error: request execution failed " <>
+               "(dns resolution error: failed to lookup address information)"
   end
 
   test "adapter failures without a reason report the formatted adapter error" do
