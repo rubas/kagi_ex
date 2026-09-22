@@ -36,7 +36,7 @@ defmodule Kagi.Maps do
   def request(%Client{} = client, query, options) when is_list(options) do
     with {:ok, query} <- build_query(query),
          {:ok, params} <- query_params(query, options),
-         {:ok, limit} <- limit(options),
+         {:ok, limit} <- Query.limit(options),
          {:ok, %{body: body}} <-
            HTTP.get(client, @url,
              params: params,
@@ -219,21 +219,6 @@ defmodule Kagi.Maps do
       :ok
     else
       {:error, Error.new(:invalid_option, "bbox SOUTH must be less than NORTH")}
-    end
-  end
-
-  @spec limit(keyword()) :: {:ok, non_neg_integer()} | {:error, Error.t()}
-  defp limit(options) do
-    case Keyword.get(options, :limit, 10) do
-      value when is_integer(value) and value >= 0 ->
-        {:ok, value}
-
-      value ->
-        {:error,
-         Error.new(
-           :invalid_option,
-           ":limit must be a non-negative integer, got: #{inspect(value)}"
-         )}
     end
   end
 

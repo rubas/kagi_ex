@@ -22,6 +22,27 @@ defmodule Kagi.Query do
 
   def normalize(query), do: {:error, invalid_query_error(query)}
 
+  @doc """
+  Resolves the `:limit` option of a search or maps request.
+
+  An absent `:limit` defaults to `10`. Any value that is not a non-negative
+  integer, `nil` included, returns an `:invalid_option` error.
+  """
+  @spec limit(keyword()) :: {:ok, non_neg_integer()} | {:error, Error.t()}
+  def limit(options) do
+    case Keyword.get(options, :limit, 10) do
+      value when is_integer(value) and value >= 0 ->
+        {:ok, value}
+
+      value ->
+        {:error,
+         Error.new(
+           :invalid_option,
+           ":limit must be a non-negative integer, got: #{inspect(value)}"
+         )}
+    end
+  end
+
   # Enum.all?/2 raises on improper lists; this stays an error tuple.
   @spec string_list?(term()) :: boolean()
   defp string_list?([]), do: true
