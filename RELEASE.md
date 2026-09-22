@@ -25,15 +25,17 @@ description: |
 
 - Bump [mix.exs](mix.exs) `@version` only when that merge should create a release.
 - Update [CHANGELOG.md](CHANGELOG.md) in the same PR.
-- No version change means no tag and no GitHub release.
+- No new version means no tag and no GitHub release.
 
 ## Automated GitHub Release
 
 After the version-bump PR is merged to `main`:
 
-1. `.github/workflows/release.yml` compares the current `mix.exs` version with `HEAD^`.
-2. If the version changed, the workflow ensures `vX.Y.Z` exists.
+1. `.github/workflows/release.yml` reads the `mix.exs` version on every push to `main`.
+2. If the tag `vX.Y.Z` does not exist, the workflow creates and pushes it.
 3. The same workflow publishes a GitHub release for `vX.Y.Z`.
+
+The decision uses the tag, not the parent commit. Runs go one at a time, so a run sees the tag that the run before it pushed. If a run stops before it pushes the tag, the next push to `main` creates the tag and the release. That tag points at the commit of the repairing push, not at the version-bump commit. If the tag exists but the release does not, run the workflow by hand with that tag. A tag that you delete by hand comes back on the next push.
 
 Use the workflow's manual dispatch only to re-run a release for the current version tag after fixing workflow issues.
 

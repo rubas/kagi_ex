@@ -38,13 +38,14 @@ defmodule Kagi.Search do
           {:ok, t()} | {:error, Error.t()}
   def request(%Client{} = client, query, options) when is_list(options) do
     with {:ok, params} <- query_params(query, options),
+         {:ok, limit} <- Query.limit(options),
          {:ok, %{body: html}} <-
            HTTP.get(client, @url,
              params: params,
              headers: [{"cookie", "kagi_session=#{client.session_token}"}]
            ),
          {:ok, html} <- normalize_html(html) do
-      parse(html, Keyword.get(options, :limit, 10))
+      parse(html, limit)
     end
   end
 
@@ -97,7 +98,6 @@ defmodule Kagi.Search do
   @spec validate_options(keyword()) :: {:ok, keyword()} | {:error, Error.t()}
   defp validate_options(options) do
     with :ok <- validate_time_range(options),
-         :ok <- validate_limit(options[:limit]),
          :ok <- validate_date(:from, options[:from]),
          :ok <- validate_date(:to, options[:to]) do
       {:ok, options}
@@ -111,14 +111,6 @@ defmodule Kagi.Search do
     else
       :ok
     end
-  end
-
-  @spec validate_limit(term()) :: :ok | {:error, Error.t()}
-  defp validate_limit(nil), do: :ok
-  defp validate_limit(limit) when is_integer(limit) and limit >= 0, do: :ok
-
-  defp validate_limit(_limit) do
-    {:error, Error.new(:invalid_option, ":limit must be a non-negative integer")}
   end
 
   @spec validate_date(:from | :to, term()) :: :ok | {:error, Error.t()}

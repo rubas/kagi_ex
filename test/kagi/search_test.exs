@@ -75,6 +75,27 @@ defmodule Kagi.SearchTest do
     assert message =~ ":time"
   end
 
+  test "rejects nil, negative, and non-integer :limit before any network call" do
+    test_pid = self()
+
+    adapter =
+      Kagi.FakeAdapter.put(Kagi.FakeAdapter, fn request ->
+        send(test_pid, :network)
+        {request, Req.Response.new(status: 200, body: ~s(<div id="search-app"></div>))}
+      end)
+
+    client = %Kagi.Client{session_token: "token", req_options: [adapter: adapter]}
+
+    for limit <- [nil, -1, "5"] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.search(client, "elixir", limit: limit)
+
+      assert message =~ ":limit"
+    end
+
+    refute_received :network
+  end
+
   test "rejects queries that are not strings or lists of strings" do
     client = %Kagi.Client{session_token: "token"}
 

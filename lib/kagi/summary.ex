@@ -153,16 +153,19 @@ defmodule Kagi.Summary do
   end
 
   @spec detect_summary_error(map()) :: :ok | {:error, Error.t()}
-  defp detect_summary_error(%{"state" => "error"} = json) do
-    reply = Map.get(json, "reply") || "Unknown error"
+  defp detect_summary_error(%{"state" => "error", "reply" => reply}) when is_binary(reply) do
     {:error, Error.new(:summarizer_error, "Summarizer error: #{reply}")}
+  end
+
+  defp detect_summary_error(%{"state" => "error"}) do
+    {:error, Error.new(:summarizer_error, "Summarizer error: Unknown error")}
   end
 
   defp detect_summary_error(_json), do: :ok
 
   @spec extract_markdown(map()) :: {:ok, String.t()} | {:error, Error.t()}
   defp extract_markdown(json) do
-    markdown = preferred_markdown(json["md"], get_in(json, ["output_data", "markdown"]))
+    markdown = preferred_markdown(json["md"], output_markdown(json))
 
     cond do
       not is_binary(markdown) ->
@@ -175,6 +178,10 @@ defmodule Kagi.Summary do
         {:ok, markdown}
     end
   end
+
+  @spec output_markdown(map()) :: term()
+  defp output_markdown(%{"output_data" => %{"markdown" => markdown}}), do: markdown
+  defp output_markdown(_json), do: nil
 
   # "md" wins only when it carries content; an empty string falls back to
   # output_data.markdown while keeping the empty-vs-missing distinction.

@@ -57,6 +57,28 @@ defmodule Kagi.SummaryTest do
     assert message =~ "Empty summary"
   end
 
+  test "keeps md when output_data is not an object" do
+    for output_data <- [~s("invalid"), "[1]", "1"] do
+      body = ~s(final:{"state":"done","md":"complete","output_data":#{output_data}})
+
+      assert {:ok, %Summary{summary: "complete"}} = Summary.parse_stream(body)
+    end
+  end
+
+  test "reports a non-object output_data without md as :parse_error" do
+    body = ~s(final:{"state":"done","output_data":[1]})
+
+    assert {:error, %Error{reason: :parse_error, message: message}} = Summary.parse_stream(body)
+    assert message =~ "Missing markdown"
+  end
+
+  test "reports an error state with a non-string reply as :summarizer_error" do
+    body = ~s(final:{"state":"error","reply":{"message":"error"}})
+
+    assert {:error, %Error{reason: :summarizer_error, message: "Summarizer error: Unknown error"}} =
+             Summary.parse_stream(body)
+  end
+
   describe "request timeout" do
     defp client_capturing_timeout(test_pid, req_options) do
       adapter =
