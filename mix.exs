@@ -1,7 +1,7 @@
 defmodule KagiEx.MixProject do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "0.4.0"
 
   @spec project() :: keyword()
   def project do

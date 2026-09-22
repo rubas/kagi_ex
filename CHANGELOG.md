@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.4.0] - 23.09.2026
+
+### Changed
+
+- `cloaked_req` must now be 0.7 (`~> 0.7`, was `~> 0.6`). If your application
+  also lists `cloaked_req`, move it to 0.7. This is a breaking change.
+- A timeout, a refused connection, or a closed connection now returns
+  `%Kagi.Error{reason: :request_failed}` with the message `"timeout"`,
+  `"connection refused"`, or `"socket closed"`. If you match on the old
+  message text, update the match.
+- The receive timeout is no longer a total deadline. It bounds the wait for
+  the response headers, then each wait for the next body chunk. This applies
+  to the `:timeout` option of `Kagi.summarize/1..3`, to `receive_timeout` in
+  `:req_options`, and to the 15 second adapter default for search and maps.
+- With `retry: :safe_transient` in `:req_options`, a timeout, a refused
+  connection, and a closed connection now retry.
+- A native panic in the adapter now gives the message
+  `"nif_panic: request task panicked (<panic text>)"`.
+- The invalid search `:limit` message now ends with `, got: <value>`, the same
+  as maps.
+- Mint 1.9.3 has CVE-2026-82672, CVE-2026-82728, and CVE-2026-82729. Kagi
+  requests do not use Mint, but Mint comes in through `req`. Update Mint to
+  1.10.1 in your own lock file, as this release does.
+- Update `dialyxir` to 1.4.8, `ex_doc` to 0.40.4, and `ex_slop` to 0.4.5 (dev
+  and test only).
+- CI now uses Elixir 1.20.4 (was 1.20.3) and OTP 29.1.1 (was 29.0.5).
+
+### Fixed
+
+- `Kagi.search/1..3` with `limit: nil` returns
+  `{:error, %Kagi.Error{reason: :invalid_option}}` before any request. Before,
+  it sent the request and then raised `FunctionClauseError`.
+- `Kagi.summarize/1..3` returns `{:ok, _}` or `{:error, %Kagi.Error{}}` for
+  unexpected nested JSON shapes in the summarizer response. Before, a
+  non-object `output_data` or a non-string error `reply` raised.
+
 ## [0.3.0] - 28.08.2026
 
 ### Changed

@@ -46,8 +46,8 @@ Run these steps only after the GitHub release for the same version exists.
 ### 1. Refresh local checkout after the GitHub release workflow finishes
 
 ```bash
-jj git fetch
-jj rebase -o main
+git fetch origin
+git switch --detach origin/main
 ```
 
 ### 2. Verify the package from the exact publishing tree
