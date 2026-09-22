@@ -12,8 +12,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
   also lists `cloaked_req`, move it to 0.7. This is a breaking change.
 - A timeout, a refused connection, or a closed connection now returns
   `%Kagi.Error{reason: :request_failed}` with the message `"timeout"`,
-  `"connection refused"`, or `"socket closed"`. If you match on the old
-  message text, update the match.
+  `"connection refused"`, or `"socket closed"`. This also applies to a timeout
+  or a closed connection while the response body streams in. If you match on
+  the old message text, update the match.
+- An invalid request header in `:req_options` now gives a `:request_failed`
+  message that starts with `"invalid_request: invalid request"`. Before, it
+  started with `"transport_error: request execution failed"`.
+- `connect_options: [proxy_headers: ...]` in `:req_options` must now be a list
+  of `{name, value}` pairs. A map now returns
+  `%Kagi.Error{reason: :request_failed}` and sends no request. Change
+  `%{"proxy-authorization" => auth}` to `[{"proxy-authorization", auth}]`.
+- If you pass `:cookie_jar` through `:req_options`, the jar no longer adds
+  cookies to Kagi requests, because the session cookie header wins. Before, a
+  request carried two `Cookie` headers.
 - The receive timeout is no longer a total deadline. It bounds the wait for
   the response headers, then each wait for the next body chunk. This applies
   to the `:timeout` option of `Kagi.summarize/1..3`, to `receive_timeout` in
@@ -24,21 +35,30 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
   `"nif_panic: request task panicked (<panic text>)"`.
 - The invalid search `:limit` message now ends with `, got: <value>`, the same
   as maps.
-- Mint 1.9.3 has CVE-2026-82672, CVE-2026-82728, and CVE-2026-82729. Kagi
-  requests do not use Mint, but Mint comes in through `req`. Update Mint to
-  1.10.1 in your own lock file, as this release does.
 - Update `dialyxir` to 1.4.8, `ex_doc` to 0.40.4, and `ex_slop` to 0.4.5 (dev
-  and test only).
+  tools only).
 - CI now uses Elixir 1.20.4 (was 1.20.3) and OTP 29.1.1 (was 29.0.5).
 
 ### Fixed
 
+- `kagi_ex` now loads on Linux with glibc 2.34 or newer, for example Debian 12,
+  Ubuntu 22.04, and RHEL 9. With 0.3.0, the x86_64 Linux NIF of `cloaked_req`
+  0.6.0 needed glibc 2.38.
 - `Kagi.search/1..3` with `limit: nil` returns
   `{:error, %Kagi.Error{reason: :invalid_option}}` before any request. Before,
   it sent the request and then raised `FunctionClauseError`.
 - `Kagi.summarize/1..3` returns `{:ok, _}` or `{:error, %Kagi.Error{}}` for
-  unexpected nested JSON shapes in the summarizer response. Before, a
-  non-object `output_data` or a non-string error `reply` raised.
+  unexpected nested JSON shapes in the summarizer response. Before, an
+  `output_data` that was a string, number, boolean, or array raised, even when
+  `md` held a valid summary. Now that summary returns. An error `reply` that
+  is not a string now gives `"Summarizer error: Unknown error"`. Before, an
+  object `reply` raised.
+
+### Security
+
+- Mint 1.9.3 has CVE-2026-82672, CVE-2026-82728, and CVE-2026-82729. Kagi
+  requests do not use Mint, but Mint comes in through `req`. Update Mint to
+  1.10.1 in your own lock file, as this release does.
 
 ## [0.3.0] - 28.08.2026
 
