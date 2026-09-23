@@ -15,9 +15,7 @@ defmodule Kagi.MapsTest do
     {:ok, json} = "test/fixtures/maps/search.json" |> File.read!() |> JSON.decode()
 
     assert {:ok, output} = Maps.parse(json, 1)
-    assert length(output.results) == 1
-
-    [first] = output.results
+    assert [first] = output.results
     assert first.name == "Example Coffee"
     assert first.address == "Example Street 1"
     assert first.phone == "+41 44 000 00 00"

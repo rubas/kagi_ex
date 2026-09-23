@@ -15,11 +15,11 @@ defmodule Kagi.SearchTest do
     html = File.read!("test/fixtures/search/basic.html")
 
     assert {:ok, output} = Search.parse(html, 2)
-    assert length(output.results) == 2
-    assert hd(output.results).title == "Example One"
-    assert hd(output.results).url == "https://example.com/1"
-    assert hd(output.results).snippet == "First result description."
-    assert Enum.at(output.results, 1).title == "Example Two"
+    assert [first, second] = output.results
+    assert first.title == "Example One"
+    assert first.url == "https://example.com/1"
+    assert first.snippet == "First result description."
+    assert second.title == "Example Two"
     assert output.related == ["related term one", "related term two"]
   end
 
