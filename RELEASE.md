@@ -43,12 +43,14 @@ Use the workflow's manual dispatch only to re-run a release for the current vers
 
 Run these steps only after the GitHub release for the same version exists.
 
-### 1. Refresh local checkout after the GitHub release workflow finishes
+### 1. Check out the release tag after the GitHub release workflow finishes
 
 ```bash
-git fetch origin
-git switch --detach origin/main
+git fetch origin --tags
+git switch --detach vX.Y.Z
 ```
+
+Publish from the tag, not from `origin/main`: a PR that merges after the tag would otherwise ship untagged code as `vX.Y.Z`, while the HexDocs source links point at the tag.
 
 ### 2. Verify the package from the exact publishing tree
 
