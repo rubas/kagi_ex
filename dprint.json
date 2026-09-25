@@ -6,7 +6,7 @@
     "trailingCommas": "never"
   },
   "toml": {},
-  "excludes": ["deps", "_build", ".dprint-cache", ".elixir_ls", ".jj", ".git", ".claude"],
+  "excludes": ["deps", "_build", ".dprint-cache", ".elixir_ls", ".git", ".claude"],
   "plugins": [
     "https://plugins.dprint.dev/json-0.21.1.wasm",
     "https://plugins.dprint.dev/markdown-0.20.0.wasm",
