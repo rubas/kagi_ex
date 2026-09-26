@@ -7,17 +7,9 @@ no API credit.
 
 ## Gates
 
-- `task check` is the default gate: compile with warnings as errors, format
-  check, Credo strict, Dialyzer, tests, and `mix deps.audit`.
-- CI on a pull request runs compile, format check, Credo, Dialyzer, tests, and
-  `zizmor` on the workflows. It leaves out `mix deps.audit`, which only a local
-  `task check` runs. `security.yml` runs the audit daily and on a `main` push
-  that touches `mix.exs` or `mix.lock`.
-- `task fix` formats.
 - `task test:live` sends real requests to Kagi. It needs `KAGI_SESSION_TOKEN`
   and a Kagi account, so a human runs it, and only after a change to request
-  building or response parsing. `test/test_helper.exs` excludes the `:live`
-  tag, which keeps CI off it.
+  building or response parsing.
 
 ## Layout
 
