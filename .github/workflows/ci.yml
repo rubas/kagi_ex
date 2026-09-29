@@ -9,7 +9,7 @@ permissions: {}
 
 jobs:
   test:
-    if: github.event_name == 'push' || github.event.pull_request.user.login == github.repository_owner
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     name: OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }}
     runs-on: ubuntu-latest
     permissions:
