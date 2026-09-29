@@ -63,7 +63,7 @@ tasks:
   security:deps:
     deps: [compile]
     cmds:
-      - MIX_ENV=test mix deps.audit
+      - mix hex.audit
 
   upgrade:
     desc: Upgrade all dependencies
