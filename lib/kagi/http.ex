@@ -21,9 +21,9 @@ defmodule Kagi.HTTP do
       |> Req.merge(options)
       |> Req.merge(url: url, method: :get)
 
-    with {:ok, %Req.Response{status: status, body: body}} <-
+    with {:ok, %Req.Response{} = response} <-
            request |> Req.request() |> normalize_request_error() do
-      handle_status(status, body)
+      handle_response(response, url)
     end
   end
 
@@ -44,16 +44,37 @@ defmodule Kagi.HTTP do
     {:error, Error.new(:request_failed, Exception.message(exception))}
   end
 
-  @spec handle_status(pos_integer(), term()) :: {:ok, response()} | {:error, Error.t()}
-  defp handle_status(status, _body) when status in [401, 403] do
-    {:error, Error.new(:unauthorized, "invalid or expired session token")}
+  @spec handle_response(Req.Response.t(), String.t()) :: {:ok, response()} | {:error, Error.t()}
+  defp handle_response(%Req.Response{status: status}, _url) when status in [401, 403] do
+    {:error, unauthorized()}
   end
 
-  defp handle_status(429, _body), do: {:error, Error.new(:rate_limited, "rate limited")}
+  defp handle_response(%Req.Response{status: 429}, _url),
+    do: {:error, Error.new(:rate_limited, "rate limited")}
 
-  defp handle_status(status, body) when status >= 200 and status <= 299 do
+  defp handle_response(%Req.Response{status: status, body: body}, _url) when status in 200..299 do
     {:ok, %{status: status, body: body}}
   end
 
-  defp handle_status(status, _body), do: {:error, Error.new(:http_error, "HTTP #{status}")}
+  defp handle_response(%Req.Response{status: status} = response, url) when status in 300..399 do
+    case Req.Response.get_header(response, "location") do
+      [location | _] -> handle_redirect(status, URI.merge(url, location))
+      [] -> {:error, Error.new(:http_error, "HTTP #{status}")}
+    end
+  end
+
+  defp handle_response(%Req.Response{status: status}, _url),
+    do: {:error, Error.new(:http_error, "HTTP #{status}")}
+
+  # Kagi redirects a request with an invalid or expired session to its
+  # sign-up page instead of answering 401.
+  @spec handle_redirect(pos_integer(), URI.t()) :: {:error, Error.t()}
+  defp handle_redirect(_status, %URI{host: "kagi.com", path: "/welcome"}),
+    do: {:error, unauthorized()}
+
+  defp handle_redirect(status, location),
+    do: {:error, Error.new(:http_error, "HTTP #{status} to #{location}")}
+
+  @spec unauthorized() :: Error.t()
+  defp unauthorized, do: Error.new(:unauthorized, "invalid or expired session token")
 end

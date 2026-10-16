@@ -90,10 +90,31 @@ defmodule Kagi.HTTPTest do
 
     client = client(adapter: counting_adapter(self(), response))
 
-    assert {:error, %Error{reason: :http_error, message: "HTTP 302"}} = HTTP.get(client, @url, [])
+    assert {:error,
+            %Error{reason: :http_error, message: "HTTP 302 to https://elsewhere.example/"}} =
+             HTTP.get(client, @url, [])
 
     assert_received {:request, _url}
     refute_received {:request, _url}
+  end
+
+  test "a 302 to https://kagi.com/welcome returns :unauthorized after one request" do
+    response =
+      Req.Response.new(status: 302, headers: %{"location" => ["https://kagi.com/welcome"]})
+
+    client = client(adapter: counting_adapter(self(), response))
+
+    assert {:error, %Error{reason: :unauthorized}} = HTTP.get(client, @url, [])
+
+    assert_received {:request, _url}
+    refute_received {:request, _url}
+  end
+
+  test "a 302 to the relative path /welcome returns :unauthorized" do
+    response = Req.Response.new(status: 302, headers: %{"location" => ["/welcome"]})
+    client = client(adapter: counting_adapter(self(), response))
+
+    assert {:error, %Error{reason: :unauthorized}} = HTTP.get(client, @url, [])
   end
 
   test "adapter failures keep the adapter's failure reason in the message" do
