@@ -74,7 +74,7 @@ goes to another host. To turn them on, set `redirect: true` or `retry: :safe_tra
 - `:lens`: `:default`, `:programming`, `:forums`, `:pdfs`, `:non_commercial`, or `:world_news`.
 - `:sort`: `:recency`, `:website`, or `:ad_trackers`.
 - `:time`: `:day`, `:week`, `:month`, or `:year`.
-- `:from` and `:to`: a `YYYY-MM-DD` date range. You cannot use them with `:time`.
+- `:from` and `:to`: a `YYYY-MM-DD` date range. `:from` must not be after `:to`. You cannot use them with `:time`.
 - `:site`: adds a `site:` filter.
 - `:filetype`: adds a `filetype:` filter.
 - `:verbatim`: `true` turns off query expansion.

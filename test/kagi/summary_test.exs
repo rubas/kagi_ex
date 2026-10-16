@@ -123,6 +123,19 @@ defmodule Kagi.SummaryTest do
     end
   end
 
+  test "rejects a :lang that is not a non-empty string" do
+    client = client_capturing_timeout(self(), [])
+
+    for lang <- [%{}, :de, ""] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.summarize(client, "https://example.com", lang: lang)
+
+      assert message =~ ":lang must be a non-empty string, got: #{inspect(lang)}"
+    end
+
+    refute_received {:receive_timeout, _timeout}
+  end
+
   defp fixture(name) do
     "test/fixtures/summary/#{name}"
     |> File.read!()
