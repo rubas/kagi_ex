@@ -15,7 +15,8 @@ defmodule Kagi.Error do
       cookie value.
     * `:invalid_option` - an option failed client-side validation.
     * `:request_failed` - the HTTP request failed before receiving a response.
-    * `:unauthorized` - Kagi returned HTTP 401 or 403.
+    * `:unauthorized` - Kagi returned HTTP 401 or 403, or redirected to its
+      sign-up page.
     * `:rate_limited` - Kagi returned HTTP 429.
     * `:http_error` - Kagi returned an unexpected non-2xx status.
     * `:blocked` - Kagi returned a CAPTCHA or challenge page.
