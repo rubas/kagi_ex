@@ -96,6 +96,7 @@ defmodule Kagi.SearchTest do
     refute_received :network
   end
 
+  @spec client_capturing_url(pid()) :: Kagi.Client.t()
   defp client_capturing_url(test_pid) do
     adapter =
       Kagi.FakeAdapter.put(Kagi.FakeAdapter, fn request ->
