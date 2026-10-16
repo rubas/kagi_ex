@@ -79,8 +79,8 @@ defmodule Kagi.Search do
   @spec query_params(String.t() | [String.t()], keyword()) ::
           {:ok, keyword()} | {:error, Error.t()}
   defp query_params(query, options) do
-    with {:ok, query} <- build_query(query, options),
-         {:ok, options} <- validate_options(options) do
+    with {:ok, options} <- validate_options(options),
+         {:ok, query} <- build_query(query, options) do
       params = [
         {:plain, :r, options[:region]},
         {:mapped, :l, options[:lens], &lens_value/1},
@@ -97,11 +97,32 @@ defmodule Kagi.Search do
 
   @spec validate_options(keyword()) :: {:ok, keyword()} | {:error, Error.t()}
   defp validate_options(options) do
-    with :ok <- validate_time_range(options),
-         :ok <- validate_date(:from, options[:from]),
-         :ok <- validate_date(:to, options[:to]) do
+    with :ok <- validate_string(:site, options[:site]),
+         :ok <- validate_string(:filetype, options[:filetype]),
+         :ok <- validate_string(:region, options[:region]),
+         :ok <- validate_verbatim(options[:verbatim]),
+         :ok <- validate_time_range(options),
+         {:ok, from} <- parse_date(:from, options[:from]),
+         {:ok, to} <- parse_date(:to, options[:to]),
+         :ok <- validate_date_order(from, to) do
       {:ok, options}
     end
+  end
+
+  @spec validate_string(:site | :filetype | :region, term()) :: :ok | {:error, Error.t()}
+  defp validate_string(_key, nil), do: :ok
+  defp validate_string(_key, value) when is_binary(value) and value != "", do: :ok
+
+  defp validate_string(key, value) do
+    {:error,
+     Error.new(:invalid_option, ":#{key} must be a non-empty string, got: #{inspect(value)}")}
+  end
+
+  @spec validate_verbatim(term()) :: :ok | {:error, Error.t()}
+  defp validate_verbatim(value) when is_nil(value) or is_boolean(value), do: :ok
+
+  defp validate_verbatim(value) do
+    {:error, Error.new(:invalid_option, ":verbatim must be a boolean, got: #{inspect(value)}")}
   end
 
   @spec validate_time_range(keyword()) :: :ok | {:error, Error.t()}
@@ -113,20 +134,30 @@ defmodule Kagi.Search do
     end
   end
 
-  @spec validate_date(:from | :to, term()) :: :ok | {:error, Error.t()}
-  defp validate_date(_key, nil), do: :ok
+  @spec parse_date(:from | :to, term()) :: {:ok, Date.t() | nil} | {:error, Error.t()}
+  defp parse_date(_key, nil), do: {:ok, nil}
 
-  defp validate_date(key, date) when is_binary(date) do
-    if Regex.match?(~r/^\d{4}-\d{2}-\d{2}$/, date) do
-      :ok
+  defp parse_date(key, value) do
+    with true <- is_binary(value),
+         {:ok, date} <- Date.from_iso8601(value) do
+      {:ok, date}
     else
-      {:error, Error.new(:invalid_option, ":#{key} must use YYYY-MM-DD")}
+      _invalid ->
+        {:error,
+         Error.new(:invalid_option, ":#{key} must be a YYYY-MM-DD date, got: #{inspect(value)}")}
     end
   end
 
-  defp validate_date(key, _date) do
-    {:error, Error.new(:invalid_option, ":#{key} must use YYYY-MM-DD")}
+  @spec validate_date_order(Date.t() | nil, Date.t() | nil) :: :ok | {:error, Error.t()}
+  defp validate_date_order(%Date{} = from, %Date{} = to) do
+    if Date.compare(from, to) == :gt do
+      {:error, Error.new(:invalid_option, ":from must not be after :to")}
+    else
+      :ok
+    end
   end
+
+  defp validate_date_order(_from, _to), do: :ok
 
   @spec build_query(String.t() | [String.t()], keyword()) ::
           {:ok, String.t()} | {:error, Error.t()}

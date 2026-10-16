@@ -96,6 +96,70 @@ defmodule Kagi.SearchTest do
     refute_received :network
   end
 
+  defp client_capturing_url(test_pid) do
+    adapter =
+      Kagi.FakeAdapter.put(Kagi.FakeAdapter, fn request ->
+        send(test_pid, {:network, request.url})
+        {request, Req.Response.new(status: 200, body: ~s(<div id="search-app"></div>))}
+      end)
+
+    %Kagi.Client{session_token: "token", req_options: [adapter: adapter]}
+  end
+
+  test "rejects a :site, :filetype, or :region that is not a non-empty string before any request" do
+    client = client_capturing_url(self())
+
+    for key <- [:site, :filetype, :region], value <- [%{a: 1}, 42, ""] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.search(client, "elixir", [{key, value}])
+
+      assert message =~ ":#{key} must be a non-empty string, got: #{inspect(value)}"
+    end
+
+    refute_received {:network, _url}
+  end
+
+  test "rejects a :verbatim that is not a boolean" do
+    client = client_capturing_url(self())
+
+    for value <- ["false", 1] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.search(client, "elixir", verbatim: value)
+
+      assert message =~ ":verbatim must be a boolean"
+    end
+
+    refute_received {:network, _url}
+  end
+
+  test "rejects :from with a trailing newline, an impossible date 2024-13-45, and a range where :from is after :to" do
+    client = client_capturing_url(self())
+
+    for options <- [[from: "2024-01-01\n"], [from: "2024-13-45"], [to: ~D[2024-01-01]]] do
+      assert {:error, %Error{reason: :invalid_option, message: message}} =
+               Kagi.search(client, "elixir", options)
+
+      assert message =~ "must be a YYYY-MM-DD date"
+    end
+
+    assert {:error, %Error{reason: :invalid_option, message: ":from must not be after :to"}} =
+             Kagi.search(client, "elixir", from: "2025-01-01", to: "2024-01-01")
+
+    refute_received {:network, _url}
+  end
+
+  test "accepts a valid :from/:to range and sends from_date and to_date unchanged" do
+    client = client_capturing_url(self())
+
+    assert {:ok, %Search{}} =
+             Kagi.search(client, "elixir", from: "2024-01-01", to: "2024-01-01", verbatim: true)
+
+    assert_received {:network, url}
+
+    assert %{"from_date" => "2024-01-01", "to_date" => "2024-01-01", "verbatim" => "1"} =
+             URI.decode_query(url.query)
+  end
+
   test "rejects queries that are not strings or lists of strings" do
     client = %Kagi.Client{session_token: "token"}
 
