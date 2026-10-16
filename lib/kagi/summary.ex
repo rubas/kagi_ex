@@ -94,15 +94,18 @@ defmodule Kagi.Summary do
 
   @spec query_params(String.t(), keyword()) :: {:ok, keyword()} | {:error, Error.t()}
   defp query_params(url, options) do
-    with {:ok, summary_type} <- summary_type(Keyword.get(options, :type, :summary)) do
-      {:ok,
-       [
-         url: url,
-         stream: "1",
-         target_language: Keyword.get(options, :lang, "EN"),
-         summary_type: summary_type
-       ]}
+    with {:ok, summary_type} <- summary_type(Keyword.get(options, :type, :summary)),
+         {:ok, lang} <- target_language(Keyword.get(options, :lang, "EN")) do
+      {:ok, [url: url, stream: "1", target_language: lang, summary_type: summary_type]}
     end
+  end
+
+  @spec target_language(term()) :: {:ok, String.t()} | {:error, Error.t()}
+  defp target_language(lang) when is_binary(lang) and lang != "", do: {:ok, lang}
+
+  defp target_language(value) do
+    {:error,
+     Error.new(:invalid_option, ":lang must be a non-empty string, got: #{inspect(value)}")}
   end
 
   @spec summary_type(term()) :: {:ok, String.t()} | {:error, Error.t()}
