@@ -123,3 +123,40 @@ jobs:
           tag_name: ${{ needs.detect.outputs.tag }}
           target_commitish: main
           generate_release_notes: true
+
+  publish:
+    name: Publish to Hex
+    needs:
+      - detect
+      - release
+    if: always() && needs.release.result == 'success'
+    runs-on: ubuntu-latest
+    # The Hex workload identity of the package names this environment and this workflow file.
+    environment: hex
+    permissions:
+      contents: read # check out the release tag
+      id-token: write # mix hex.publish exchanges the job's OIDC token for a Hex token
+    steps:
+      # The tag, not main: a PR that merges after the version bump must not ship as this version.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ needs.detect.outputs.tag }}
+          persist-credentials: false
+
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        env:
+          INSTALL_DIR_FOR_OTP: ${{ runner.tool_cache }}/setup-beam/otp-29.1.2
+          INSTALL_DIR_FOR_ELIXIR: ${{ runner.tool_cache }}/setup-beam/elixir-1.20.5
+        with:
+          elixir-version: "1.20.5"
+          otp-version: "29.1.2"
+
+      - name: Install dependencies
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      # With no Hex credential in the job, Hex publishes through the workload identity.
+      - name: Publish the package and its docs
+        run: mix hex.publish --yes
