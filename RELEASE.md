@@ -11,15 +11,16 @@ description: |
 `kagi_ex` releases have two parts:
 
 1. GitHub tag and release
-2. Hex publication, with docs published automatically
+2. Hex publication with its docs, which waits for an owner's approval on hex.pm
 
 ## Quick Reference
 
-| Step                         | Trigger           | Output                          |
-| ---------------------------- | ----------------- | ------------------------------- |
-| Bump `@version` in `mix.exs` | PR to `main`      | Release candidate commit        |
-| Merge version bump to `main` | `release.yml`     | `vX.Y.Z` tag and GitHub release |
-| Publish package              | `mix hex.publish` | Hex package and HexDocs docs    |
+| Step                         | Trigger          | Output                                 |
+| ---------------------------- | ---------------- | -------------------------------------- |
+| Bump `@version` in `mix.exs` | PR to `main`     | Release candidate commit               |
+| Merge version bump to `main` | `release.yml`    | `vX.Y.Z` tag and GitHub release        |
+| GitHub release succeeds      | `release.yml`    | Hex package and docs, staged           |
+| Approve the staged release   | hex.pm, with 2FA | Hex package and HexDocs docs published |
 
 ## Version Bump Rules
 
@@ -39,34 +40,17 @@ The decision uses the tag, not the parent commit. Runs go one at a time, so a ru
 
 Use the workflow's manual dispatch only to re-run a release for the current version tag after fixing workflow issues.
 
-## Exact Hex Release Steps
+## Hex Release
 
-Run these steps only after the GitHub release for the same version exists.
+When the GitHub release job succeeds, the `Publish to Hex` job of `.github/workflows/release.yml` checks out the tag `vX.Y.Z` and runs `mix hex.publish --yes`, which uploads the package and its docs. It publishes the tag, not `main`: a PR that merges after the version bump would otherwise ship untagged code as `vX.Y.Z`, while the HexDocs source links point at the tag.
 
-### 1. Check out the release tag after the GitHub release workflow finishes
+The job stores no Hex key. It runs in the GitHub environment `hex`, which only `main` can use, and Hex exchanges the job's OIDC token for a token that can only publish `kagi_ex`. For that, the package has a workload identity on hex.pm, in its tab "Workload identities": repository owner `rubas`, repository `kagi_ex`, workflow `release.yml`, environment `hex`. Only a full owner of the package can add or change it.
 
-```bash
-git fetch origin --tags
-git switch --detach vX.Y.Z
-```
+The package has staged publishing on. Hex holds each release from the job, and the job ends with `Package staged for approval at <url>`. A package owner approves it on hex.pm with their 2FA, within 7 days. The job does not wait for that approval: a GitHub job stops after 6 hours.
 
-Publish from the tag, not from `origin/main`: a PR that merges after the tag would otherwise ship untagged code as `vX.Y.Z`, while the HexDocs source links point at the tag.
-
-### 2. Verify the package from the exact publishing tree
-
-```bash
-mix hex.build
-mix docs
-```
-
-### 3. Publish the package
-
-```bash
-mix hex.publish
-```
+When the job fails, fix the cause and re-run the job. It publishes the same tag. A failed docs upload prints `Publishing failed` but leaves the job green, so read the end of its log.
 
 ## Gotchas
 
-- Do not publish to Hex before the matching GitHub release exists.
 - Do not reuse versions. Hex versions are immutable.
-- `mix hex.publish` publishes documentation automatically.
+- A manual dispatch publishes too, after its GitHub release. For a version that Hex already holds, the publish job fails and changes nothing.

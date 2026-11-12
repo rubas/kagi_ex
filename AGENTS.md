@@ -34,6 +34,6 @@ The README describes the client, its options, and how it authenticates. It ships
   looks for result markup first and returns `:blocked` for a CAPTCHA page.
 - Search parses kagi.com class names (`.__sri_title_link`, `.__srgi-title a`, `.__sri-desc`). A new `:parse_error`
   means Kagi changed its markup, not that the caller sent a bad query. Fix the selector and record a new fixture.
-- A merge to `main` that bumps `@version` in `mix.exs` creates the `vX.Y.Z` tag and the GitHub release. It does not
-  publish to Hex; `mix hex.publish` stays a manual step after the GitHub release exists. Bump the version in a release
-  PR with the CHANGELOG entry, never inside another change. [RELEASE.md](RELEASE.md) has the steps.
+- A merge to `main` that bumps `@version` in `mix.exs` creates the `vX.Y.Z` tag and the GitHub release, and
+  publishes the tag to Hex, where it waits for an owner's approval. Hex versions are immutable. Bump the version in a
+  release PR with the CHANGELOG entry, never inside another change. [RELEASE.md](RELEASE.md) has the steps.
