@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and this project follows Semantic Versioning.
 
+## [0.4.1] - 12.11.2026
+
+### Fixed
+
+- A request that Kagi redirects to its sign-up page, because the session token
+  is invalid or expired, now returns `%Kagi.Error{reason: :unauthorized}`.
+  Before, `Kagi.search/1..3` returned `:http_error` with `"HTTP 302"`.
+  Another redirect stays `:http_error`, and its message now names the target,
+  for example `"HTTP 302 to https://elsewhere.example/"`.
+- `Kagi.search/1..3` and `Kagi.summarize/1..3` return
+  `{:error, %Kagi.Error{reason: :invalid_option}}` before any request for an
+  option of the wrong type. Before, a map in `:site`, `:filetype`, `:region`,
+  or `:lang` raised `Protocol.UndefinedError`, and any truthy `:verbatim`, such
+  as `"false"`, turned verbatim on.
+- `:from` and `:to` must now be real `YYYY-MM-DD` dates, and `:from` must not
+  be after `:to`. Before, `"2024-13-45"` and a date with a trailing newline
+  went to Kagi.
+
+### Changed
+
+- Tests and docs now build with `cloaked_req` 0.8.1, `lazy_html` 0.1.14, and
+  `dialyxir` 1.4.9. The requirements in `mix.exs` stay the same.
+- CI now uses Elixir 1.20.5 (was 1.20.4) and OTP 29.1.2 (was 29.1.1).
+
 ## [0.4.0] - 23.09.2026
 
 ### Changed
