@@ -38,7 +38,7 @@ After the version-bump PR is merged to `main`:
 
 The decision uses the tag, not the parent commit. Runs go one at a time, so a run sees the tag that the run before it pushed. If a run stops before it pushes the tag, the next push to `main` creates the tag and the release. That tag points at the commit of the repairing push, not at the version-bump commit. If the tag exists but the release does not, run the workflow by hand with that tag. A tag that you delete by hand comes back on the next push.
 
-Use the workflow's manual dispatch only to re-run a release for the current version tag after fixing workflow issues.
+Use the workflow's manual dispatch only to re-run a release for the current version tag after fixing workflow issues. The dispatch fails when the tag does not exist or its `mix.exs` has another `@version`.
 
 ## Hex Release
 
@@ -48,7 +48,7 @@ The job stores no Hex key. It runs in the GitHub environment `hex`, which only `
 
 The package has staged publishing on. Hex holds each release from the job, and the job ends with `Package staged for approval at <url>`. A package owner approves it on hex.pm with their 2FA, within 7 days. The job does not wait for that approval: a GitHub job stops after 6 hours.
 
-When the job fails, fix the cause and re-run the job. It publishes the same tag. A failed docs upload prints `Publishing failed` but leaves the job green, so read the end of its log.
+When the job fails for a cause outside the repo, such as hex.pm or the workload identity, fix it and re-run the job. It publishes the same tag. A cause in the tag needs a new patch version. After a fix of the job itself, dispatch the workflow with the tag. The job fails when the log says `Publishing failed` or `Publishing docs failed`, because `mix hex.publish` exits 0 when only the docs upload fails.
 
 ## Gotchas
 

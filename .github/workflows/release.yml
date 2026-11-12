@@ -16,6 +16,9 @@ permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+  # Keep every pending run. A newer push would otherwise cancel the pending run of the version
+  # bump, and tag its own commit.
+  queue: max
 
 jobs:
   detect:
@@ -41,8 +44,18 @@ jobs:
           INPUT_TAG: ${{ inputs.tag }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # A dispatch releases and publishes a tag that exists. For a missing tag, the GitHub
+            # release would create it at main.
             TAG="$INPUT_TAG"
-            VERSION="${TAG#v}"
+            if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+              echo "Tag $TAG does not exist" >&2
+              exit 1
+            fi
+            VERSION="$(git show "refs/tags/$TAG:mix.exs" | sed -n 's/^  @version "\([^"]*\)"$/\1/p' | head -n1)"
+            if [ "$TAG" != "v$VERSION" ]; then
+              echo "Tag $TAG has @version $VERSION in mix.exs" >&2
+              exit 1
+            fi
           else
             VERSION="$(sed -n 's/^  @version "\([^"]*\)"$/\1/p' mix.exs | head -n1)"
 
@@ -152,11 +165,14 @@ jobs:
           otp-version: "29.1.2"
 
       - name: Install dependencies
-        run: |
-          mix local.hex --force
-          mix local.rebar --force
-          mix deps.get
+        run: mix deps.get
 
-      # With no Hex credential in the job, Hex publishes through the workload identity.
+      # With no Hex credential in the job, Hex publishes through the workload identity. A failed upload
+      # of the docs still exits 0, so the step reads the log.
       - name: Publish the package and its docs
-        run: mix hex.publish --yes
+        shell: bash
+        run: |
+          mix hex.publish --yes 2>&1 | tee "$RUNNER_TEMP/publish.log"
+          if grep -E 'Publishing (docs )?failed' "$RUNNER_TEMP/publish.log"; then
+            exit 1
+          fi
