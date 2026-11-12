@@ -16,6 +16,9 @@ permissions: {}
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+  # Keep every pending run. A newer push would otherwise cancel the pending run of the version
+  # bump, and tag its own commit.
+  queue: max
 
 jobs:
   detect:
