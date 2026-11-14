@@ -48,9 +48,9 @@ The job stores no Hex key. It runs in the GitHub environment `hex`, which only `
 
 The package has staged publishing on. Hex holds each release from the job, and the job ends with `Package staged for approval at <url>`. A package owner approves it on hex.pm with their 2FA, within 7 days. The job does not wait for that approval: a GitHub job stops after 6 hours.
 
-When the job fails for a cause outside the repo, such as hex.pm or the workload identity, fix it and re-run the job. It publishes the same tag. A cause in the tag needs a new patch version. After a fix of the job itself, dispatch the workflow with the tag. The job fails when the log says `Publishing failed` or `Publishing docs failed`, because `mix hex.publish` exits 0 when only the docs upload fails.
+When the job fails for a cause outside the repo, such as hex.pm or the workload identity, fix it and re-run the job. It publishes the same tag. When hex.pm already lists the version, for example after an owner approved a release whose docs upload failed, the job uploads only the docs, which wait for approval too. A cause in the tag needs a new patch version. After a fix of the job itself, dispatch the workflow with the tag. The job fails when the log says `Publishing failed` or `Publishing docs failed`, because `mix hex.publish` exits 0 when only the docs upload fails.
 
 ## Gotchas
 
 - Do not reuse versions. Hex versions are immutable.
-- A manual dispatch publishes too, after its GitHub release. For a version that Hex already holds, the publish job fails and changes nothing.
+- A manual dispatch publishes too, after its GitHub release. For a version that hex.pm already lists, the publish job uploads only its docs, which wait for approval.
